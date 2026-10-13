@@ -1523,3 +1523,23 @@ msgstr ""
 #, rust-format
 msgid "{count} unread chats"
 msgstr ""
+
+#: src/ui/settings.rs
+msgid "Server"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Port"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Username"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Optional"
+msgstr ""
+
+#: src/ui/settings.rs
+msgid "Host or IP"
+msgstr ""

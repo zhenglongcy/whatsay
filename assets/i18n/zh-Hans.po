@@ -1525,3 +1525,23 @@ msgstr ""
 #, rust-format
 msgid "{count} unread chats"
 msgstr ""
+
+#: src/ui/settings.rs
+msgid "Server"
+msgstr "服务器"
+
+#: src/ui/settings.rs
+msgid "Port"
+msgstr "端口"
+
+#: src/ui/settings.rs
+msgid "Username"
+msgstr "用户名"
+
+#: src/ui/settings.rs
+msgid "Optional"
+msgstr "可选"
+
+#: src/ui/settings.rs
+msgid "Host or IP"
+msgstr "主机或 IP"

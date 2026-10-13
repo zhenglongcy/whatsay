@@ -599,45 +599,19 @@ fn sections(app: &App) -> Vec<Section> {
         ),
         |settings| &mut settings.download_updates_automatically,
     );
-    let environment = app
-        .settings
-        .proxy
-        .is_empty()
-        .then(crate::proxy::for_whatsapp)
-        .flatten();
-    let description = match environment {
-        Some(proxy) => {
-            let redacted = proxy.redacted();
-            let text = translated(locale, "Using {proxy} from the environment.");
-            Text {
-                shown: text.shown.replace("{proxy}", &redacted).into(),
-                source: text.source.replace("{proxy}", &redacted).into(),
-            }
-        }
-        None => translated(
-            locale,
-            "For WhatsApp, media, and updates. Empty uses ALL_PROXY or HTTPS_PROXY.",
-        ),
-    };
-    system.row(translated(locale, "Proxy"), description, move |ui, app| {
-        let id = egui::Id::new("settings-proxy-draft");
-        let mut draft = ui
-            .data(|data| data.get_temp::<String>(id))
-            .unwrap_or_else(|| app.settings.proxy.clone());
-        let response = ui.add(
-            egui::TextEdit::singleline(&mut draft)
-                .hint_text("socks5h://127.0.0.1:9050")
-                .font(theme::regular(13.0))
-                .text_color(palette.text)
-                .desired_width(220.0),
-        );
-        if response.lost_focus() {
-            app.actions.push(Action::SetProxy(draft.clone()));
-            ui.data_mut(|data| data.remove::<String>(id));
-        } else if response.has_focus() {
-            ui.data_mut(|data| data.insert_temp(id, draft));
-        }
-    });
+    system.block(
+        vec![
+            translated(locale, "Proxy"),
+            translated(locale, "Server"),
+            translated(locale, "Port"),
+            translated(locale, "Username"),
+            translated(locale, "Password"),
+            Text::from("SOCKS5"),
+            Text::from("SOCKS5H"),
+            Text::from("HTTP"),
+        ],
+        move |ui, app| proxy_form(app, ui),
+    );
     system.row(
         translated(locale, "GIPHY API key"),
         if crate::settings::BUILT_IN_GIPHY_KEY.is_some() {
@@ -1356,6 +1330,180 @@ fn section(
             add_contents(ui);
         });
     ui.add_space(8.0);
+}
+
+/// The proxy settings, as a form with a type, server, port, and optional
+/// credentials, instead of one address field. The form reads and writes the
+/// same URL setting, so an address typed by an older version keeps working.
+fn proxy_form(app: &mut App, ui: &mut egui::Ui) {
+    use crate::proxy::ProxyKind;
+
+    #[derive(Clone)]
+    struct Draft {
+        /// The setting this draft was built from.
+        source: String,
+        kind: ProxyKind,
+        host: String,
+        port: String,
+        username: String,
+        password: String,
+        error: Option<String>,
+    }
+
+    impl Draft {
+        fn from_settings(setting: &str) -> Self {
+            let (kind, host, port, username, password) = crate::proxy::Proxy::parse(setting)
+                .map(|proxy| proxy.to_form())
+                .unwrap_or_default();
+            Self {
+                source: setting.to_owned(),
+                kind,
+                host,
+                port,
+                username,
+                password,
+                error: None,
+            }
+        }
+    }
+
+    let palette = app.palette;
+    let locale = app.locale;
+    let text = |source: &'static str| crate::i18n::gettext(locale, source).into_owned();
+
+    let environment = app
+        .settings
+        .proxy
+        .is_empty()
+        .then(crate::proxy::for_whatsapp)
+        .flatten();
+    let description: String = match environment {
+        Some(proxy) => {
+            text("Using {proxy} from the environment.").replace("{proxy}", &proxy.redacted())
+        }
+        None => text("For WhatsApp, media, and updates. Empty uses ALL_PROXY or HTTPS_PROXY."),
+    };
+    theme::text(ui, text("Proxy"), theme::medium(14.0), palette.text);
+    theme::paragraph(ui, &description, theme::regular(12.5), palette.secondary);
+    ui.add_space(8.0);
+
+    let id = egui::Id::new("settings-proxy-form");
+    let mut draft: Draft = ui
+        .data(|data| data.get_temp(id))
+        .unwrap_or_else(|| Draft::from_settings(&app.settings.proxy));
+    if draft.source != app.settings.proxy {
+        draft = Draft::from_settings(&app.settings.proxy);
+    }
+    let fields_enabled = draft.kind != ProxyKind::Off;
+    // theme::text truncates, which would squeeze the labels to the grid's
+    // column width; the form keeps its labels whole instead.
+    let label = |ui: &mut egui::Ui, text: String| {
+        ui.add(
+            egui::Label::new(
+                egui::RichText::new(text)
+                    .font(theme::regular(13.0))
+                    .color(palette.text),
+            )
+            .selectable(false),
+        );
+    };
+
+    egui::Grid::new("proxy-form")
+        .num_columns(2)
+        .spacing([16.0, 8.0])
+        .show(ui, |ui| {
+            label(ui, text("Proxy"));
+            let response = egui::ComboBox::from_id_salt("proxy-kind")
+                .selected_text(draft.kind.label())
+                .width(200.0_f32.min(ui.available_width()))
+                .show_ui(ui, |ui| {
+                    for kind in ProxyKind::ALL {
+                        if ui
+                            .selectable_value(&mut draft.kind, kind, kind.label())
+                            .clicked()
+                            && draft.port.trim().is_empty()
+                        {
+                            draft.port = kind.default_port().to_string();
+                        }
+                    }
+                });
+            theme::reveal_focus(&response.response);
+            ui.end_row();
+
+            label(ui, text("Server"));
+            ui.add_enabled(
+                fields_enabled,
+                egui::TextEdit::singleline(&mut draft.host)
+                    .hint_text(text("Host or IP"))
+                    .font(theme::regular(13.0))
+                    .text_color(palette.text)
+                    .desired_width(f32::INFINITY),
+            );
+            ui.end_row();
+
+            label(ui, text("Port"));
+            ui.add_enabled(
+                fields_enabled,
+                egui::TextEdit::singleline(&mut draft.port)
+                    .hint_text("1080")
+                    .font(theme::regular(13.0))
+                    .text_color(palette.text)
+                    .desired_width(f32::INFINITY),
+            );
+            ui.end_row();
+
+            label(ui, text("Username"));
+            ui.add_enabled(
+                fields_enabled,
+                egui::TextEdit::singleline(&mut draft.username)
+                    .hint_text(text("Optional"))
+                    .font(theme::regular(13.0))
+                    .text_color(palette.text)
+                    .desired_width(f32::INFINITY),
+            );
+            ui.end_row();
+
+            label(ui, text("Password"));
+            ui.add_enabled(
+                fields_enabled,
+                egui::TextEdit::singleline(&mut draft.password)
+                    .password(true)
+                    .hint_text(text("Optional"))
+                    .font(theme::regular(13.0))
+                    .text_color(palette.text)
+                    .desired_width(f32::INFINITY),
+            );
+            ui.end_row();
+        });
+
+    ui.add_space(8.0);
+    ui.horizontal(|ui| {
+        if let Some(error) = draft.error.clone() {
+            theme::text(ui, error, theme::regular(12.5), palette.danger);
+        }
+        ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+            if theme::soft_button(ui, &palette, None, &text("Save"), false).clicked() {
+                match crate::proxy::Proxy::compose(
+                    draft.kind,
+                    &draft.host,
+                    &draft.port,
+                    &draft.username,
+                    &draft.password,
+                ) {
+                    Ok(value) => {
+                        draft.error = None;
+                        if value != app.settings.proxy {
+                            draft.source = value.clone();
+                            app.actions.push(Action::SetProxy(value));
+                        }
+                    }
+                    Err(error) => draft.error = Some(error),
+                }
+            }
+        });
+    });
+    ui.add_space(10.0);
+    ui.data_mut(|data| data.insert_temp(id, draft));
 }
 
 /// Our WhatsApp profile, which can be edited in place, and unlinking.

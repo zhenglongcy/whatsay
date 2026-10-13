@@ -27,6 +27,63 @@ enum Scheme {
     Socks5h,
 }
 
+/// The proxy types the settings form offers. `Off` leaves the setting empty.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum ProxyKind {
+    #[default]
+    Off,
+    Socks5,
+    Socks5h,
+    Http,
+}
+
+impl ProxyKind {
+    /// Every choice in the settings form, in a stable order.
+    pub const ALL: [ProxyKind; 4] = [
+        ProxyKind::Off,
+        ProxyKind::Socks5,
+        ProxyKind::Socks5h,
+        ProxyKind::Http,
+    ];
+
+    /// The label in the settings form. Protocol names are not translated.
+    pub fn label(self) -> &'static str {
+        match self {
+            ProxyKind::Off => "Off",
+            ProxyKind::Socks5 => "SOCKS5",
+            ProxyKind::Socks5h => "SOCKS5H",
+            ProxyKind::Http => "HTTP",
+        }
+    }
+
+    /// The port the form fills in when the type changes and the field is empty.
+    pub fn default_port(self) -> u16 {
+        match self {
+            ProxyKind::Http => 80,
+            _ => 1080,
+        }
+    }
+
+    fn scheme(self) -> &'static str {
+        match self {
+            ProxyKind::Off => "",
+            ProxyKind::Socks5 => "socks5",
+            ProxyKind::Socks5h => "socks5h",
+            ProxyKind::Http => "http",
+        }
+    }
+}
+
+impl Scheme {
+    fn kind(self) -> ProxyKind {
+        match self {
+            Scheme::Http => ProxyKind::Http,
+            Scheme::Socks5 => ProxyKind::Socks5,
+            Scheme::Socks5h => ProxyKind::Socks5h,
+        }
+    }
+}
+
 #[derive(Clone, PartialEq, Eq)]
 pub struct Proxy {
     scheme: Scheme,
@@ -115,6 +172,60 @@ impl Proxy {
             }
             _ => self.url.clone(),
         }
+    }
+
+    /// Splits the proxy into the settings form's fields: the type, host,
+    /// port, user name, and password.
+    pub fn to_form(&self) -> (ProxyKind, String, String, String, String) {
+        let (username, password) = self.auth.clone().unwrap_or_default();
+        (
+            self.scheme.kind(),
+            self.host.clone(),
+            self.port.to_string(),
+            username,
+            password,
+        )
+    }
+
+    /// Builds the settings value from the form's fields. `Off` or an empty
+    /// host means no proxy. The result goes through [`Proxy::parse`], so the
+    /// form stores exactly what a typed address would.
+    pub fn compose(
+        kind: ProxyKind,
+        host: &str,
+        port: &str,
+        username: &str,
+        password: &str,
+    ) -> Result<String, String> {
+        let host = host.trim();
+        if kind == ProxyKind::Off || host.is_empty() {
+            return Ok(String::new());
+        }
+        let port = port.trim();
+        let port: u16 = if port.is_empty() {
+            kind.default_port()
+        } else {
+            port.parse()
+                .map_err(|_| "The port is a number from 1 to 65535".to_owned())?
+        };
+        if port == 0 {
+            return Err("The port is a number from 1 to 65535".to_owned());
+        }
+        let username = username.trim();
+        let credentials = if username.is_empty() {
+            String::new()
+        } else if password.is_empty() {
+            format!("{}@", percent_encode(username))
+        } else {
+            format!("{}:{}@", percent_encode(username), percent_encode(password))
+        };
+        let host = if host.contains(':') {
+            format!("[{host}]")
+        } else {
+            host.to_owned()
+        };
+        let raw = format!("{}://{credentials}{host}:{port}", kind.scheme());
+        Ok(Proxy::parse(&raw)?.url)
     }
 
     /// Opens a tunnel through the proxy to `host:port`.
@@ -282,6 +393,19 @@ fn socks_reply(code: u8) -> &'static str {
 
 fn proxy_error(message: &str) -> std::io::Error {
     std::io::Error::other(message.to_owned())
+}
+
+/// Percent-encodes a proxy user name or password for the settings URL.
+fn percent_encode(value: &str) -> String {
+    let mut encoded = String::with_capacity(value.len());
+    for byte in value.bytes() {
+        if byte.is_ascii_alphanumeric() || b"-_.~".contains(&byte) {
+            encoded.push(byte as char);
+        } else {
+            encoded.push_str(&format!("%{byte:02X}"));
+        }
+    }
+    encoded
 }
 
 fn percent_decode(value: &str) -> String {
@@ -462,6 +586,56 @@ mod tests {
         assert!(Proxy::parse("ftp://proxy.lan").is_err());
         assert!(Proxy::parse("http://proxy.lan/path").is_err());
         assert!(Proxy::parse("").is_err());
+    }
+
+    #[test]
+    fn compose_builds_what_parse_reads() {
+        assert_eq!(
+            Proxy::compose(ProxyKind::Socks5h, "127.0.0.1", "9050", "me", "p@ss").unwrap(),
+            "socks5h://me:p%40ss@127.0.0.1:9050"
+        );
+        assert_eq!(
+            Proxy::compose(ProxyKind::Http, "proxy.lan", "", "", "").unwrap(),
+            "http://proxy.lan:80"
+        );
+        assert_eq!(
+            Proxy::compose(ProxyKind::Socks5, "::1", "1080", "", "").unwrap(),
+            "socks5://[::1]:1080"
+        );
+        assert_eq!(
+            Proxy::compose(ProxyKind::Off, "127.0.0.1", "1080", "", "").unwrap(),
+            ""
+        );
+        assert_eq!(
+            Proxy::compose(ProxyKind::Socks5, "   ", "1080", "", "").unwrap(),
+            ""
+        );
+        assert!(Proxy::compose(ProxyKind::Socks5, "127.0.0.1", "0", "", "").is_err());
+        assert!(Proxy::compose(ProxyKind::Socks5, "127.0.0.1", "65536", "", "").is_err());
+        assert!(Proxy::compose(ProxyKind::Socks5, "127.0.0.1", "http", "", "").is_err());
+    }
+
+    #[test]
+    fn form_fields_round_trip() {
+        let proxy = Proxy::parse("socks5h://me:pw@127.0.0.1:9050").unwrap();
+        let (kind, host, port, username, password) = proxy.to_form();
+        assert_eq!(kind, ProxyKind::Socks5h);
+        assert_eq!(host, "127.0.0.1");
+        assert_eq!(port, "9050");
+        assert_eq!(username, "me");
+        assert_eq!(password, "pw");
+        assert_eq!(
+            Proxy::compose(kind, &host, &port, &username, &password).unwrap(),
+            "socks5h://me:pw@127.0.0.1:9050"
+        );
+
+        let proxy = Proxy::parse("http://proxy.lan:3128").unwrap();
+        let (kind, host, port, username, password) = proxy.to_form();
+        assert_eq!(kind, ProxyKind::Http);
+        assert_eq!(
+            Proxy::compose(kind, &host, &port, &username, &password).unwrap(),
+            "http://proxy.lan:3128"
+        );
     }
 
     #[test]

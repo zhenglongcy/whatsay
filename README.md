@@ -763,12 +763,12 @@ copied messages keep WhatsApp's `[time, date] Name:` format.
 ### Proxy
 
 **Settings > System > Proxy** sends the WhatsApp connection, media, profile
-pictures, GIF search, Signal sticker imports, and update checks through a proxy. It accepts
-`socks5h://host:port` (the proxy resolves names, as Tor expects),
-`socks5://host:port`, and `http://host:port`, each with an optional
-`user:password@`. A bare `host:port` is an HTTP proxy. Changing it reconnects
-at once. When the field is empty, ZapFast uses `ALL_PROXY` or `HTTPS_PROXY`
-from the environment and honors `NO_PROXY`.
+pictures, GIF search, Signal sticker imports, and update checks through a proxy.
+Pick the type (SOCKS5, SOCKS5H, or HTTP), then the server, port, and optional
+user name and password. SOCKS5H hands the proxy the host names to resolve, as
+Tor expects; SOCKS5 resolves them on this computer. Saving reconnects at once.
+With the type set to Off, ZapFast uses `ALL_PROXY` or `HTTPS_PROXY` from the
+environment and honors `NO_PROXY`.
 
 ## Files
 
