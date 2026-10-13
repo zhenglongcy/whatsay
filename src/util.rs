@@ -579,9 +579,9 @@ pub fn hue(seed: &str) -> f32 {
 }
 
 /// Embedded SVG app logo used across platform surfaces.
-const MARK: &[u8] = include_bytes!("../packaging/icons/zapfast.svg");
+const MARK: &[u8] = include_bytes!("../packaging/icons/whatsay.svg");
 /// The same mark without its rim and shading, which blur below this size.
-const SMALL_MARK: &[u8] = include_bytes!("../packaging/icons/zapfast-small.svg");
+const SMALL_MARK: &[u8] = include_bytes!("../packaging/icons/whatsay-small.svg");
 const SMALL_BELOW: usize = 40;
 
 /// Rasterizes the logo to straight-alpha RGBA.

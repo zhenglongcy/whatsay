@@ -30,7 +30,7 @@ const RUN_GAP: f32 = 5.0;
 /// Footer label on an outgoing message that failed to send.
 const NOT_SENT: &str = "Not sent";
 const NOT_SENT_HINT: &str =
-    "This message could not be sent, and ZapFast will not retry it. Send it again yourself.";
+    "This message could not be sent, and Whatsay will not retry it. Send it again yourself.";
 
 pub fn show(app: &mut App, ui: &mut egui::Ui) {
     let Some(chat) = app.current_chat().cloned() else {
@@ -81,7 +81,7 @@ fn empty(app: &mut App, ui: &mut egui::Ui) {
     ui.painter().text(
         center,
         Align2::CENTER_CENTER,
-        "ZapFast",
+        "Whatsay",
         theme::bold(24.0),
         palette.text,
     );
@@ -819,7 +819,7 @@ fn composer(app: &mut App, ui: &mut egui::Ui, chat: &Chat) {
                             } else {
                                 crate::i18n::gettext(
                                     app.locale,
-                                    "Channels are read-only in ZapFast",
+                                    "Channels are read-only in Whatsay",
                                 )
                             }
                             .as_ref(),
@@ -831,7 +831,7 @@ fn composer(app: &mut App, ui: &mut egui::Ui, chat: &Chat) {
                 }
                 if chat.locked {
                     ui.vertical_centered(|ui| {
-                        theme::text(ui, "Locked chats are read-only in ZapFast", theme::regular(13.5), palette.secondary);
+                        theme::text(ui, "Locked chats are read-only in Whatsay", theme::regular(13.5), palette.secondary);
                     });
                     return;
                 }
@@ -5985,7 +5985,7 @@ fn video(
 ) -> f32 {
     use crate::video::State;
     let palette = view.palette;
-    // A video sent before ZapFast made thumbnails has none; its file is
+    // A video sent before Whatsay made thumbnails has none; its file is
     // here, so its first frame stands in. Without either, it is a file card.
     let thumbnail = message.thumbnail.as_deref();
     if thumbnail.is_none() && media.path.is_none() {

@@ -81,7 +81,7 @@ jobs:
           name="zapfast-${GITHUB_REF_NAME}-${{ matrix.target }}"
           mkdir -p "dist/$name"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            cp "target/${{ matrix.target }}/release/zapfast.exe" "dist/$name/"
+            cp "target/${{ matrix.target }}/release/whatsay.exe" "dist/$name/"
           else
             cp "target/${{ matrix.target }}/release/zapfast" "dist/$name/"
           fi
@@ -109,8 +109,8 @@ jobs:
           if (-not $iscc) { $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" }
           $numericVersion = $version.Split("-")[0]
           & $iscc "/DVersion=$version" "/DNumericVersion=$numericVersion" "/DArch=$arch" `
-            "/DBinary=$PWD\target\${{ matrix.target }}\release\zapfast.exe" `
-            "/DOutputDir=$PWD\dist" packaging\windows\zapfast.iss
+            "/DBinary=$PWD\target\${{ matrix.target }}\release\whatsay.exe" `
+            "/DOutputDir=$PWD\dist" packaging\windows\whatsay.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Attest release packages

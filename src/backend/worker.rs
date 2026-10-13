@@ -678,7 +678,7 @@ fn invite_error(error: &str) -> String {
 /// unconfirmed. A healthy sync answers well within this.
 const PRIVACY_GRACE: Duration = Duration::from_secs(10);
 
-/// How long ZapFast stays "available" after the window loses focus.
+/// How long Whatsay stays "available" after the window loses focus.
 const PRESENCE_LINGER: Duration = Duration::from_secs(10);
 
 /// Waits longer after each failed lock-state recovery, so a collection the
@@ -813,7 +813,7 @@ struct Worker {
     favorites_pushing: bool,
     /// More favorite changes arrived while a push was running.
     favorites_again: bool,
-    /// The phone's favorites from before ZapFast followed them were replayed.
+    /// The phone's favorites from before Whatsay followed them were replayed.
     favorites_recovered: bool,
     /// That replay is running.
     favorites_recovering: bool,
@@ -1553,7 +1553,7 @@ impl Worker {
             // WhatsApp reads the linked-device name, version, and icon at pairing.
             .with_device_props(
                 DevicePropsOverride::new()
-                    .with_os("ZapFast")
+                    .with_os("Whatsay")
                     .with_version(app_version())
                     .with_platform_type(wa::device_props::PlatformType::DESKTOP),
             )
@@ -2361,7 +2361,7 @@ impl Worker {
             }
             E::ClientOutdated(_) => {
                 self.set_status(LinkStatus::Failed(
-                    "WhatsApp rejected this version of ZapFast. Update the app".to_owned(),
+                    "WhatsApp rejected this version of Whatsay. Update the app".to_owned(),
                 ));
             }
             E::Messages(batch) => {
@@ -2409,7 +2409,7 @@ impl Worker {
                         .set_ephemeral(&chat, *expiration, timestamp)
                         .unwrap_or(false);
                     log::debug!(
-                        target: "zapfast::disappearing",
+                        target: "whatsay::disappearing",
                         "group timer update: duration={expiration}s timestamp={timestamp} accepted={accepted}"
                     );
                     if accepted {
@@ -3028,7 +3028,7 @@ impl Worker {
                         .set_ephemeral(&chat, expiration, timestamp)
                         .unwrap_or(false);
                     log::debug!(
-                        target: "zapfast::disappearing",
+                        target: "whatsay::disappearing",
                         "protocol timer update: duration={expiration}s timestamp={timestamp} fallback_timestamp={used_fallback} accepted={accepted}"
                     );
                     if accepted {
@@ -3036,7 +3036,7 @@ impl Worker {
                     }
                 } else {
                     log::debug!(
-                        target: "zapfast::disappearing",
+                        target: "whatsay::disappearing",
                         "protocol timer update missing expiration"
                     );
                 }
@@ -4284,7 +4284,7 @@ impl Worker {
                     Err(_) => false,
                 };
             if !writable {
-                let error = "This conversation is read-only in ZapFast".to_owned();
+                let error = "This conversation is read-only in Whatsay".to_owned();
                 if matches!(&command, Command::CreatePoll { .. }) {
                     self.emit(Event::PollCreated {
                         chat: chat.clone(),
@@ -5026,7 +5026,7 @@ impl Worker {
                 let Some(client) = self.client.clone() else {
                     self.emit(Event::InvitePreview {
                         code,
-                        result: Err("ZapFast is not connected to WhatsApp".to_owned()),
+                        result: Err("Whatsay is not connected to WhatsApp".to_owned()),
                     });
                     return;
                 };
@@ -5055,7 +5055,7 @@ impl Worker {
                 let Some(client) = self.client.clone() else {
                     self.emit(Event::InviteJoined {
                         code,
-                        result: Err("ZapFast is not connected to WhatsApp".to_owned()),
+                        result: Err("Whatsay is not connected to WhatsApp".to_owned()),
                     });
                     return;
                 };
@@ -5342,7 +5342,7 @@ impl Worker {
                         // The phone has cleared it; say so rather than leave
                         // the messages here looking as if nothing happened.
                         self.emit(Event::Error(
-                            "The phone cleared this chat, but ZapFast could not clear it here"
+                            "The phone cleared this chat, but Whatsay could not clear it here"
                                 .to_owned(),
                         ));
                     }

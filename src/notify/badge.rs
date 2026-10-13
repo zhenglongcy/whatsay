@@ -28,7 +28,7 @@ fn launcher_uri(desktop_file: &str) -> String {
 
 /// The desktop file name for this installation, which is also the app id the
 /// window uses (see `main.rs`). A Flatpak install ships
-/// `rocks.zapfast.ZapFast.desktop` and sets the same id in `FLATPAK_ID`.
+/// `rocks.zapfast.Whatsay.desktop` and sets the same id in `FLATPAK_ID`.
 fn desktop_file() -> String {
     std::env::var("FLATPAK_ID").unwrap_or_else(|_| "zapfast".to_owned())
 }
@@ -117,8 +117,8 @@ mod tests {
     fn launcher_uri_names_the_desktop_file() {
         assert_eq!(launcher_uri("zapfast"), "application://zapfast.desktop");
         assert_eq!(
-            launcher_uri("rocks.zapfast.ZapFast"),
-            "application://rocks.zapfast.ZapFast.desktop"
+            launcher_uri("rocks.zapfast.Whatsay"),
+            "application://rocks.zapfast.Whatsay.desktop"
         );
     }
 

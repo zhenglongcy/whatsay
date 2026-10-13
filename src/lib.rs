@@ -1,4 +1,4 @@
-//! ZapFast internals exposed for diagnostics and tests.
+//! Whatsay internals exposed for diagnostics and tests.
 
 pub mod account;
 pub mod animation;

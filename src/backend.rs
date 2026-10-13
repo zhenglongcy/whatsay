@@ -349,7 +349,7 @@ pub enum Command {
         complete: bool,
     },
     /// Internal: the one-time replay of the phone's contacts, for the first
-    /// names saved before ZapFast kept them, finished.
+    /// names saved before Whatsay kept them, finished.
     FirstNamesRecovered {
         complete: bool,
     },
@@ -585,7 +585,7 @@ pub enum Command {
     /// Sets aside an unreadable archive and the linked session, then starts
     /// over with a new archive and a new link.
     StartOverArchive,
-    /// Whether the person is looking at ZapFast. While they are not, the
+    /// Whether the person is looking at Whatsay. While they are not, the
     /// linked phone keeps receiving push notifications.
     SetOnline(bool),
     Shutdown,

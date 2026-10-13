@@ -17,7 +17,7 @@ pub type Catalog = fastframe_theme::Catalog<Palette>;
 pub const DESKTOP_THEMES: fastframe_theme::DesktopThemes = fastframe_theme::DesktopThemes {
     slug: "zapfast",
     omarchy_template: include_str!("../contrib/omarchy/zapfast.json.tpl"),
-    // Every template ZapFast shipped before, so an untouched copy installed
+    // Every template Whatsay shipped before, so an untouched copy installed
     // by an older release is replaced with the current one.
     omarchy_previous_templates: &[include_str!(
         "../contrib/omarchy/previous/zapfast-1.json.tpl"
@@ -25,7 +25,7 @@ pub const DESKTOP_THEMES: fastframe_theme::DesktopThemes = fastframe_theme::Desk
     presets: true,
 };
 
-/// The shared palettes, as ZapFast reads them.
+/// The shared palettes, as Whatsay reads them.
 pub fn presets() -> impl Iterator<Item = CustomTheme> {
     fastframe_theme::presets::themes::<Palette>()
 }
@@ -278,7 +278,7 @@ impl fastframe_theme::Palette for Palette {
     }
 
     /// Spotifast palettes share the sixteen interface colours. Derive the
-    /// chat-only colours when importing one, while keeping explicit ZapFast
+    /// chat-only colours when importing one, while keeping explicit Whatsay
     /// overrides.
     fn derive(&mut self, given: &std::collections::BTreeSet<&str>) {
         if given.contains("window") && !given.contains("chat") {
@@ -606,7 +606,7 @@ pub fn apply_text_rendering_change(ctx: &egui::Context) -> bool {
 
 fastframe_icons::icons! {
     /// Every icon the interface draws. Icons Spotifast ships too come from
-    /// fastframe-icons (`lucide`); the rest are ZapFast's own files.
+    /// fastframe-icons (`lucide`); the rest are Whatsay's own files.
     pub enum Icon {
         prefix: "zapfast-icon-",
         directory: "../assets/icons/",
@@ -1419,7 +1419,7 @@ mod tests {
         assert!(ratio >= 4.5, "hover contrast is only {ratio:.2}:1");
     }
 
-    /// Every colour ZapFast has can be set by name, including the chat
+    /// Every colour Whatsay has can be set by name, including the chat
     /// colours Spotifast's palettes lack; explicit ones win over derived ones.
     #[test]
     fn palette_files_set_every_colour_and_keep_explicit_chat_colours() {
@@ -1468,7 +1468,7 @@ mod tests {
         );
     }
 
-    /// ZapFast's Omarchy template adds the chat colours to the base ones and
+    /// Whatsay's Omarchy template adds the chat colours to the base ones and
     /// renders as Omarchy's own renderer does.
     #[test]
     fn the_omarchy_template_renders_like_omarchy_in_light_and_dark_themes() {

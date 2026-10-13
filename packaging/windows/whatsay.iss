@@ -1,7 +1,7 @@
 ; Windows installer built from a release binary with Inno Setup 6.3 or newer:
 ;
-;   iscc /DVersion=0.1.0 /DArch=x86_64 /DBinary=...\zapfast.exe ^
-;        /DOutputDir=dist packaging\windows\zapfast.iss
+;   iscc /DVersion=0.1.0 /DArch=x86_64 /DBinary=...\whatsay.exe ^
+;        /DOutputDir=dist packaging\windows\whatsay.iss
 ;
 ; Arch matches the Rust target: x86_64 or aarch64. Installation uses the
 ; current user's Programs folder and does not need administrator rights.
@@ -28,8 +28,8 @@
   #define InnoArch "x64compatible"
 #endif
 
-#define AppName "ZapFast"
-#define AppExeName "zapfast.exe"
+#define AppName "Whatsay"
+#define AppExeName "whatsay.exe"
 
 [Setup]
 ; Never change: this is how Windows tells an update from a new program.
@@ -50,8 +50,8 @@ ArchitecturesInstallIn64BitMode={#InnoArch}
 MinVersion=10.0
 LicenseFile=..\..\LICENSE
 OutputDir={#OutputDir}
-OutputBaseFilename=zapfast-v{#Version}-{#Arch}-pc-windows-msvc-setup
-SetupIconFile=zapfast.ico
+OutputBaseFilename=whatsay-v{#Version}-{#Arch}-pc-windows-msvc-setup
+SetupIconFile=whatsay.ico
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -67,14 +67,14 @@ Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription:
 Source: "{#Binary}"; DestDir: "{app}"; Flags: ignoreversion
 ; Updaters up to 0.16.5 relaunch the executable they were started from, so an
 ; update begun as fastsapp.exe needs that file to come back (as Spotifast's
-; #582). The app deletes the copy once it starts as zapfast.exe with no update
-; running, and later updaters relaunch zapfast.exe themselves.
+; #582). The app deletes the copy once it starts as whatsay.exe with no update
+; running, and later updaters relaunch whatsay.exe themselves.
 Source: "{#Binary}"; DestDir: "{app}"; DestName: "fastsapp.exe"; Flags: ignoreversion
 Source: "..\..\README.md"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\..\THIRD-PARTY-NOTICES.md"; DestDir: "{app}"; Flags: ignoreversion
 
-Source: "zapfast-installer.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "whatsay-installer.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [InstallDelete]
 ; AppId keeps upgrades in the existing installation directory. Remove the

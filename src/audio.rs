@@ -29,8 +29,8 @@ fn rate() -> NonZero<u32> {
 /// Opens the default output device for playback.
 ///
 /// rodio reports the sink's drop through `stderr` by default. A desktop launch
-/// can have that closed: ZapFast inherits `stderr` from whatever started it,
-/// and that process can exit while ZapFast runs on. Rust ignores `SIGPIPE`, so
+/// can have that closed: Whatsay inherits `stderr` from whatever started it,
+/// and that process can exit while Whatsay runs on. Rust ignores `SIGPIPE`, so
 /// the next write there fails with `Broken pipe` and the print macro panics,
 /// which aborts the whole app in a release build. Keep it off, and report
 /// failures of our own through the log instead.

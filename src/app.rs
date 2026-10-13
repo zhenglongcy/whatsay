@@ -575,7 +575,7 @@ pub struct App {
     pub focus_settings_search: bool,
     pub quit_requested: bool,
     pub window_focused: bool,
-    /// Whether ZapFast starts at login, when this installation supports it.
+    /// Whether Whatsay starts at login, when this installation supports it.
     pub start_with_system: Option<bool>,
     /// Cross-thread window repaint handle.
     waker: Waker,
@@ -584,7 +584,7 @@ pub struct App {
     /// spawn.
     #[cfg(test)]
     test_tray_shown: Option<bool>,
-    /// Whether the tray menu offers "Lock ZapFast": whether an app lock
+    /// Whether the tray menu offers "Lock Whatsay": whether an app lock
     /// password was set when it last changed.
     tray_lockable: bool,
     /// Whether the app is running without a window.
@@ -698,7 +698,7 @@ fn wayland_session() -> bool {
 }
 
 /// The app outlives its window: closing it with "keep running" on hides
-/// ZapFast, and the tray, a notification or another launch brings it back.
+/// Whatsay, and the tray, a notification or another launch brings it back.
 impl fastframe_shell::Resident for App {
     fn closed(&self) -> fastframe_shell::Closed {
         if self.quit_requested {
@@ -762,17 +762,17 @@ fn tray_action(event: fastframe_tray::Event, window_hidden: bool) -> Option<Acti
     })
 }
 
-/// The tray item: ZapFast's icon, and a menu to show or hide the window,
+/// The tray item: Whatsay's icon, and a menu to show or hide the window,
 /// to lock it while an app lock password is set, and to quit. The title and
 /// the menu never name a chat, so they are safe while locked.
 ///
-/// "Lock ZapFast" is always in the menu, hidden without a password;
+/// "Lock Whatsay" is always in the menu, hidden without a password;
 /// `App::sync_tray` shows or hides it as the password is set or removed.
 fn tray_config(lockable: bool) -> fastframe_tray::Config {
     use fastframe_tray::MenuItem;
     fastframe_tray::Config {
         id: "zapfast",
-        title: "ZapFast".into(),
+        title: "Whatsay".into(),
         icon: crate::util::app_icon_rgba,
         template_icon: Some(crate::util::tray_template_rgba),
         // The tray icon is the app icon, so hosts that draw only named icons
@@ -781,8 +781,8 @@ fn tray_config(lockable: bool) -> fastframe_tray::Config {
         // A left click on macOS toggles the window, as on Linux.
         menu_on_click: false,
         menu: vec![
-            MenuItem::action(TRAY_SHOW, "Show or hide ZapFast"),
-            MenuItem::action(TRAY_LOCK, "Lock ZapFast").visible(lockable),
+            MenuItem::action(TRAY_SHOW, "Show or hide Whatsay"),
+            MenuItem::action(TRAY_LOCK, "Lock Whatsay").visible(lockable),
             MenuItem::Separator,
             MenuItem::action(TRAY_QUIT, "Quit"),
         ],
@@ -911,7 +911,7 @@ impl App {
     pub fn start_hidden(&mut self) {
         self.hide_intent = true;
         // No window will attach the tray, which makes the macOS item; make
-        // it now without bringing ZapFast forward.
+        // it now without bringing Whatsay forward.
         if let Some(tray) = &mut self.tray {
             tray.create_item();
         }
@@ -960,7 +960,7 @@ impl App {
                 _ => Palette::dark(),
             });
         let locale = crate::i18n::resolve(settings.interface_language);
-        // With a password set, ZapFast starts locked.
+        // With a password set, Whatsay starts locked.
         let app_lock = crate::app_lock::AppLock::new(settings.app_lock_hash.is_some());
         let tray_lockable = settings.app_lock_hash.is_some();
         let mut app = Self {
@@ -1411,7 +1411,7 @@ impl App {
 
     /// Whether a panel shows the tray item now, so a hidden window can be
     /// brought back from it. On Linux the item exists before a panel shows
-    /// it (ZapFast started at login before the panel), and on a desktop
+    /// it (Whatsay started at login before the panel), and on a desktop
     /// without one it never is.
     fn tray_shown(&self) -> bool {
         #[cfg(test)]
@@ -1436,7 +1436,7 @@ impl App {
         );
     }
 
-    /// Offers "Lock ZapFast" in the tray exactly while an app lock password
+    /// Offers "Lock Whatsay" in the tray exactly while an app lock password
     /// is set, so setting or removing one changes the menu at once.
     fn sync_tray(&mut self) {
         let lockable = self.settings.app_lock_hash.is_some();
@@ -1552,11 +1552,11 @@ impl App {
     }
 
     /// Announces a message while the app lock is on: "New message" from
-    /// ZapFast, without the chat, the sender, the text or a picture, so the
+    /// Whatsay, without the chat, the sender, the text or a picture, so the
     /// desktop shows nothing the lock screen hides. A chat's own sound and
     /// the mention sound would tell who wrote, so only the message sound
     /// plays, still silent for groups when group sounds are off. The click
-    /// target stays inside ZapFast: it opens the message once unlocked.
+    /// target stays inside Whatsay: it opens the message once unlocked.
     fn notify_while_locked(&mut self, chat_id: &str, is_group: bool, message: &str) {
         let (title, body) = crate::notify::locked_lines(self.locale);
         let sound = notification_sound(&self.settings, None, is_group, false);
@@ -2878,7 +2878,7 @@ impl App {
             Event::UpdateAvailable { version, url } => {
                 let notice = crate::updates::Release { version, url };
                 if self.update.as_ref() != Some(&notice) {
-                    self.toast(format!("ZapFast {} is available", notice.version));
+                    self.toast(format!("Whatsay {} is available", notice.version));
                 }
                 self.update = Some(notice);
             }
@@ -3273,7 +3273,7 @@ impl App {
         let message = match reason {
             Refusal::Offline => crate::i18n::gettext(
                 self.locale,
-                "Not sent: ZapFast is not connected to WhatsApp.",
+                "Not sent: Whatsay is not connected to WhatsApp.",
             ),
             Refusal::QuoteUnavailable => crate::i18n::gettext(
                 self.locale,
@@ -4353,7 +4353,7 @@ impl App {
                 } else if let Some(url) = crate::safety::external_url(&url) {
                     ctx.open_url(egui::OpenUrl::new_tab(url));
                 } else {
-                    self.toast_error("This link type cannot be opened from ZapFast");
+                    self.toast_error("This link type cannot be opened from Whatsay");
                 }
             }
             Action::CopyText(text) => {
@@ -5151,7 +5151,7 @@ impl App {
                     self.toast_error(
                         crate::i18n::gettext(
                             self.locale,
-                            "You have {limit} labels, the most ZapFast keeps.",
+                            "You have {limit} labels, the most Whatsay keeps.",
                         )
                         .replace("{limit}", &crate::archive::LABEL_LIMIT.to_string()),
                     );
@@ -5736,7 +5736,7 @@ impl App {
         self.sync_badge();
     }
 
-    /// Collects a finished password check, and locks once ZapFast has gone
+    /// Collects a finished password check, and locks once Whatsay has gone
     /// unused for the chosen time. Inactivity counts while the window is
     /// hidden too: only input in the window restarts it.
     fn tick_app_lock(&mut self, ctx: &egui::Context) {
@@ -5753,7 +5753,7 @@ impl App {
         if self.app_lock.is_locked() {
             return;
         }
-        // Recording a voice message is using ZapFast, keys or not.
+        // Recording a voice message is using Whatsay, keys or not.
         if self.recording.is_some() {
             self.app_lock.note_input();
         }
@@ -6998,7 +6998,7 @@ mod tests {
         );
     }
 
-    /// Demo and test runs share the machine with a linked ZapFast, whose real
+    /// Demo and test runs share the machine with a linked Whatsay, whose real
     /// taskbar badge they must not overwrite.
     #[test]
     fn demo_and_test_runs_do_not_publish_a_taskbar_badge() {
@@ -7634,7 +7634,7 @@ mod tests {
         assert!(!app.hide_intent);
     }
 
-    /// On Linux the tray item exists before a panel shows it (ZapFast started
+    /// On Linux the tray item exists before a panel shows it (Whatsay started
     /// at login before the panel, or a desktop without one). Until a panel
     /// shows it, closing quits, a hidden start opens the window, and the
     /// window is not hidden, since nothing could bring it back.
@@ -8119,8 +8119,8 @@ mod tests {
             assert_eq!(
                 super::tray_config(lockable).menu,
                 [
-                    fastframe_tray::MenuItem::action(super::TRAY_SHOW, "Show or hide ZapFast"),
-                    fastframe_tray::MenuItem::action(super::TRAY_LOCK, "Lock ZapFast")
+                    fastframe_tray::MenuItem::action(super::TRAY_SHOW, "Show or hide Whatsay"),
+                    fastframe_tray::MenuItem::action(super::TRAY_LOCK, "Lock Whatsay")
                         .visible(lockable),
                     fastframe_tray::MenuItem::Separator,
                     fastframe_tray::MenuItem::action(super::TRAY_QUIT, "Quit"),
@@ -8129,7 +8129,7 @@ mod tests {
         }
     }
 
-    /// The tray offers "Lock ZapFast" as soon as a password is set and stops
+    /// The tray offers "Lock Whatsay" as soon as a password is set and stops
     /// as soon as it is removed, not at the next start.
     #[test]
     fn the_tray_offers_the_lock_while_a_password_is_set() {
@@ -11748,7 +11748,7 @@ mod app_lock_tests {
         app.lock_app();
         app.maybe_notify(CHAT, &message);
         let shown = app.notifications.shown.last().unwrap();
-        assert_eq!(shown.title, "ZapFast");
+        assert_eq!(shown.title, "Whatsay");
         assert_eq!(shown.body, "New message");
         assert_eq!(shown.picture, None);
         assert_eq!(
