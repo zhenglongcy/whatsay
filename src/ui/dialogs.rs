@@ -27,6 +27,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                 Dialog::ConfirmUnlink => 380.0,
                 Dialog::ConfirmRemoveAccount(_) => 380.0,
                 Dialog::ConfirmLeaveGroup(_) => 380.0,
+                Dialog::ExportChat(_) => 380.0,
                 Dialog::PairWithPhone => 380.0,
                 Dialog::NewContact => 380.0,
                 Dialog::NewChat => 420.0,
@@ -86,6 +87,7 @@ pub fn show(app: &mut App, ctx: &egui::Context) {
                 Dialog::MessageInfo { chat, message } => {
                     super::message_info::show(app, ui, &chat, &message)
                 }
+                Dialog::ExportChat(id) => export_chat(app, ui, &id),
             }
         });
     if response.should_close() {
@@ -1256,6 +1258,58 @@ fn confirm_leave_group(app: &mut App, ui: &mut egui::Ui, id: &str) {
             .clicked()
             {
                 app.actions.push(Action::CloseDialog);
+            }
+        });
+    });
+}
+
+fn export_chat(app: &mut App, ui: &mut egui::Ui, id: &str) {
+    let palette = app.palette;
+    let locale = app.locale;
+    title(
+        ui,
+        app,
+        crate::i18n::gettext(locale, "Export chat").as_ref(),
+    );
+    theme::paragraph(
+        ui,
+        crate::i18n::gettext(
+            locale,
+            "Save this chat's history as a text file, with its downloaded files.",
+        ),
+        theme::regular(13.5),
+        palette.text,
+    );
+    ui.add_space(10.0);
+    ui.checkbox(
+        &mut app.export_include_media,
+        crate::i18n::gettext(locale, "Include downloaded files"),
+    );
+    ui.add_space(10.0);
+    ui.horizontal(|ui| {
+        ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
+            if theme::pill_button(
+                ui,
+                &palette,
+                crate::i18n::gettext(locale, "Cancel").as_ref(),
+                false,
+            )
+            .clicked()
+            {
+                app.actions.push(Action::CloseDialog);
+            }
+            if theme::pill_button(
+                ui,
+                &palette,
+                crate::i18n::gettext(locale, "Export").as_ref(),
+                true,
+            )
+            .clicked()
+            {
+                app.actions.push(Action::ExportChat {
+                    chat: id.to_owned(),
+                    include_media: app.export_include_media,
+                });
             }
         });
     });

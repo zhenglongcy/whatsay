@@ -388,6 +388,8 @@ pub struct App {
     pub chat_search_truncated: bool,
     /// Whether an answer for the current query and day is still due.
     pub chat_search_pending: bool,
+    /// Whether the export dialog copies downloaded files next to the transcript.
+    pub export_include_media: bool,
     /// The result the arrow keys have reached, if any.
     pub chat_search_selected: Option<usize>,
     /// Local day the in-chat search is limited to, if any.
@@ -999,6 +1001,7 @@ impl App {
             chat_search_hits: Vec::new(),
             chat_search_truncated: false,
             chat_search_pending: false,
+            export_include_media: true,
             chat_search_selected: None,
             chat_search_day: None,
             chat_search_month: crate::util::today(),
@@ -2897,6 +2900,21 @@ impl App {
                     Err(error) => crate::updates::DownloadState::Failed(error),
                 };
             }
+            Event::ChatExported { chat: _, result } => match result {
+                Ok(report) => {
+                    let files = if report.files_copied > 0 {
+                        format!(" and {} files", report.files_copied)
+                    } else {
+                        String::new()
+                    };
+                    self.toast(format!(
+                        "Exported {} messages{files} to {}",
+                        report.messages,
+                        report.transcript.display()
+                    ));
+                }
+                Err(error) => self.toast_error(format!("Export failed: {error}")),
+            },
             Event::UpdateInstalling(result) => match result {
                 Ok(()) => self.actions.push(Action::Quit),
                 Err(error) => self.update_download = crate::updates::DownloadState::Failed(error),
@@ -4972,6 +4990,16 @@ impl App {
                 // archived and closed itself would not come back. The
                 // confirmed update does both.
                 self.backend.send(Command::LeaveGroup { chat, archive });
+            }
+            Action::ExportChat {
+                chat,
+                include_media,
+            } => {
+                self.dialog = None;
+                self.backend.send(Command::PickExportFolder {
+                    chat,
+                    include_media,
+                });
             }
             Action::SetArchived(chat, archived) => {
                 if let Some(known) = self.chat_mut(&chat) {

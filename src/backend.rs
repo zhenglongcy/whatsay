@@ -272,6 +272,17 @@ pub enum Command {
     },
     /// Selects and sends files with the desktop picker.
     PickFiles(ChatId),
+    /// Picks the folder a chat export goes to with the desktop picker.
+    PickExportFolder {
+        chat: ChatId,
+        include_media: bool,
+    },
+    /// Writes a chat's transcript and copies its downloaded files.
+    ExportChat {
+        chat: ChatId,
+        dir: PathBuf,
+        include_media: bool,
+    },
     /// Sends files with the caption on the first.
     SendFiles {
         chat: ChatId,
@@ -777,6 +788,11 @@ pub enum Event {
     Picked {
         chat: ChatId,
         paths: Vec<PathBuf>,
+    },
+    /// A chat export finished, with its report or the failure.
+    ChatExported {
+        chat: ChatId,
+        result: Result<crate::export::ExportReport, String>,
     },
     /// Live incoming message for desktop notification.
     Incoming {

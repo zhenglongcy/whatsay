@@ -239,6 +239,7 @@ fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                             "Clear chat",
                             leave_label.as_ref(),
                             "Copy number",
+                            "Export chat",
                             "Close chat",
                         ],
                         true,
@@ -310,6 +311,11 @@ fn header(app: &mut App, ui: &mut egui::Ui, chat: &Chat) -> Rect {
                                 && widgets::menu_item(ui, &palette, Some(Icon::Copy), "Copy number")
                             {
                                 app.actions.push(Action::CopyText(format!("+{phone}")));
+                            }
+                            if widgets::menu_item(ui, &palette, Some(Icon::Download), "Export chat")
+                            {
+                                app.actions
+                                    .push(Action::ShowDialog(Dialog::ExportChat(chat.id.clone())));
                             }
                             if widgets::menu_item(ui, &palette, Some(Icon::X), "Close chat") {
                                 app.actions.push(Action::CloseChat);

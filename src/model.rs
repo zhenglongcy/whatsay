@@ -1165,6 +1165,8 @@ pub enum Dialog {
         chat: ChatId,
         message: String,
     },
+    /// Exports a chat's history to a text file, with its downloaded files.
+    ExportChat(ChatId),
 }
 
 /// One recipient's receipts for one of our group messages.
@@ -1592,6 +1594,11 @@ pub enum Action {
     SetPinned(ChatId, bool),
     /// Marks a chat as a favorite, or removes the mark, here and on the phone.
     SetFavorite(ChatId, bool),
+    /// Exports a chat's history to a folder picked in a file dialog.
+    ExportChat {
+        chat: ChatId,
+        include_media: bool,
+    },
     ShowDialog(Dialog),
     CloseDialog,
     ToggleSidebar,

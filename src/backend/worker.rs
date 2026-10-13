@@ -4478,6 +4478,38 @@ impl Worker {
                 });
             }
             Command::Picked { chat, paths } => self.emit(Event::Picked { chat, paths }),
+            Command::PickExportFolder {
+                chat,
+                include_media,
+            } => {
+                let commands = self.commands.clone();
+                tokio::task::spawn_blocking(move || {
+                    let dir = rfd::FileDialog::new()
+                        .set_title("Export chat")
+                        .pick_folder();
+                    if let Some(dir) = dir {
+                        let _ = commands.send(Command::ExportChat {
+                            chat,
+                            dir,
+                            include_media,
+                        });
+                    }
+                });
+            }
+            Command::ExportChat {
+                chat,
+                dir,
+                include_media,
+            } => {
+                let result = match self.archive.chat(&chat) {
+                    Ok(Some(chat)) => {
+                        crate::export::export_chat(&self.archive, &chat, &dir, include_media)
+                    }
+                    Ok(None) => Err("chat not found".to_owned()),
+                    Err(error) => Err(format!("{error:#}")),
+                };
+                self.emit(Event::ChatExported { chat, result });
+            }
             Command::SendFiles {
                 chat,
                 paths,

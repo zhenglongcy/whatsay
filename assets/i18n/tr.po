@@ -1581,3 +1581,19 @@ msgstr ""
 #, rust-format
 msgid "{count} unread chats"
 msgstr ""
+
+#: src/ui/dialogs.rs
+msgid "Export chat"
+msgstr ""
+
+#: src/ui/dialogs.rs
+msgid "Save this chat's history as a text file, with its downloaded files."
+msgstr ""
+
+#: src/ui/dialogs.rs
+msgid "Include downloaded files"
+msgstr ""
+
+#: src/ui/dialogs.rs
+msgid "Export"
+msgstr ""
