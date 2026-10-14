@@ -198,6 +198,10 @@ fn run() -> eframe::Result<()> {
         discovered
     };
     if !demo {
+        // Move to the installer-chosen data root before anything else adopts
+        // into these directories.
+        dirs.adopt_data_root()
+            .map_err(|error| eframe::Error::AppCreation(error.into()))?;
         dirs.adopt_previous_names()
             .map_err(|error| eframe::Error::AppCreation(error.into()))?;
     }

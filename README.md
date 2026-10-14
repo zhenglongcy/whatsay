@@ -797,6 +797,15 @@ directories to the current user (`0700`), including existing installations.
 Startup stops if those directories cannot be created or secured, before opening
 logs or databases. Windows uses the permissions inherited from your user profile.
 
+### Data location
+
+The Windows installer asks where to keep chat history and downloaded files.
+The choice is stored in `datadir.txt` next to the executable; on the next
+start Whatsay moves the existing data there itself, copying the archive's
+keyring key first so the encrypted history stays readable. Leaving the field
+empty keeps the default location. Setting the `WHATSAY_DATA_DIR` environment
+variable overrides the location directly (advanced; no automatic move).
+
 ### Local themes
 
 **Settings → Appearance → Theme** uses the same picker as Spotifast, with

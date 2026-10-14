@@ -30,13 +30,75 @@ Icon "${SRCROOT}\packaging\windows\whatsay.ico"
 UninstallIcon "${SRCROOT}\packaging\windows\whatsay.ico"
 
 !include "MUI2.nsh"
+!include "nsDialogs.nsh"
+!include "LogicLib.nsh"
 !define MUI_ABORTWARNING
 !define MUI_ICON "${SRCROOT}\packaging\windows\whatsay.ico"
 !define MUI_UNICON "${SRCROOT}\packaging\windows\whatsay.ico"
 !define MUI_FINISHPAGE_RUN "$INSTDIR\${APPEXE}"
 !define MUI_FINISHPAGE_RUN_TEXT "Launch ${APPNAME}"
 
+; --- Data folder page -------------------------------------------------------
+; Lets the user choose where chat history and downloaded files live.
+; The choice is written to datadir.txt next to the exe; the app moves
+; existing data there itself on next start (copying the archive key first).
+; Default (empty choice) = the standard %LOCALAPPDATA%\paolino\zapfast.
+
+Var DataDirDlg
+Var DataDirText
+Var DataDir
+
+LangString DataDirTitle 1033 "Choose Data Location"
+LangString DataDirTitle 2052 "选择数据保存位置"
+LangString DataDirSub 1033 "Choose where Whatsay stores your chat history and downloaded files."
+LangString DataDirSub 2052 "选择 Whatsay 保存聊天记录和文件的位置。"
+LangString DataDirBrowse 1033 "Browse..."
+LangString DataDirBrowse 2052 "浏览..."
+LangString DataDirDefaultNote 1033 "Leave empty to use the default location."
+LangString DataDirDefaultNote 2052 "留空则使用默认位置。"
+
+Function DataDirCreate
+  ; Previous choice, if any, becomes the starting value.
+  StrCpy $DataDir ""
+  ClearErrors
+  FileOpen $0 "$INSTDIR\datadir.txt" r
+  IfErrors no_prev_choice
+    FileRead $0 $DataDir
+    FileClose $0
+  no_prev_choice:
+
+  nsDialogs::Create 1018
+  Pop $DataDirDlg
+  ${If} $DataDirDlg == error
+    Abort
+  ${EndIf}
+  !insertmacro MUI_HEADER_TEXT "$(DataDirTitle)" "$(DataDirSub)"
+  ${NSD_CreateLabel} 0 0 100% 12u "$(DataDirSub)"
+  Pop $0
+  ${NSD_CreateLabel} 0 16u 100% 12u "$(DataDirDefaultNote)"
+  Pop $0
+  ${NSD_CreateText} 0 34u 75% 12u "$DataDir"
+  Pop $DataDirText
+  ${NSD_CreateButton} 77% 33u 23% 14u "$(DataDirBrowse)"
+  Pop $0
+  ${NSD_OnClick} $0 DataDirBrowse
+  nsDialogs::Show
+FunctionEnd
+
+Function DataDirBrowse
+  nsDialogs::SelectFolderDialog "$(DataDirTitle)" "$DataDir"
+  Pop $0
+  ${If} $0 != error
+    ${NSD_SetText} $DataDirText $0
+  ${EndIf}
+FunctionEnd
+
+Function DataDirLeave
+  ${NSD_GetText} $DataDirText $DataDir
+FunctionEnd
+
 !insertmacro MUI_PAGE_WELCOME
+Page custom DataDirCreate DataDirLeave
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
@@ -78,6 +140,41 @@ Section "${APPNAME}" SecMain
   File "${SRCROOT}\LICENSE"
   File "${SRCROOT}\THIRD-PARTY-NOTICES.md"
   File "${SRCROOT}\packaging\windows\whatsay-installer.txt"
+
+  ; Record the data-location choice for the app (datadir.txt next to the
+  ; exe). Line 1 = desired root ("default"/empty = platform directories),
+  ; line 2 = previously chosen root for migrating existing data.
+  ; $DataDir comes from the data page; empty means default.
+  StrCpy $1 "" ; previous line 1
+  ClearErrors
+  FileOpen $0 "$INSTDIR\datadir.txt" r
+  IfErrors no_prev_datadir
+    FileRead $0 $1
+    FileClose $0
+  no_prev_datadir:
+  ; Trim trailing CR/LF from the previous value for comparison.
+  trim_prev:
+    StrCpy $2 $1 1 -1
+    StrCmp $2 "$\r" trim_prev_cut
+    StrCmp $2 "$\n" trim_prev_cut trim_prev_done
+  trim_prev_cut:
+    StrCpy $1 $1 -1
+    Goto trim_prev
+  trim_prev_done:
+  ${If} $DataDir == ""
+    ${If} $1 == ""
+      Delete "$INSTDIR\datadir.txt" ; already default, keep it clean
+    ${ElseIf} $1 != "default"
+      ; Reverting to default: the app migrates the old root back.
+      FileOpen $0 "$INSTDIR\datadir.txt" w
+      FileWrite $0 "default$\r$\n$1"
+      FileClose $0
+    ${EndIf}
+  ${ElseIf} $DataDir != $1
+    FileOpen $0 "$INSTDIR\datadir.txt" w
+    FileWrite $0 "$DataDir$\r$\n$1"
+    FileClose $0
+  ${EndIf}
 
   WriteUninstaller "$INSTDIR\uninstall.exe"
 
@@ -126,6 +223,7 @@ Section "Uninstall"
   Delete "$INSTDIR\THIRD-PARTY-NOTICES.md"
   Delete "$INSTDIR\whatsay-installer.txt"
   Delete "$INSTDIR\whatsay.ico"
+  Delete "$INSTDIR\datadir.txt"
   Delete "$INSTDIR\uninstall.exe"
   RMDir "$INSTDIR"
 

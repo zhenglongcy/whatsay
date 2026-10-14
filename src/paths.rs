@@ -20,6 +20,18 @@ pub struct AppDirs {
 
 impl AppDirs {
     pub fn discover() -> Self {
+        // An explicit data root wins over the platform directories, so the
+        // installer can offer a data location and portable setups can point
+        // elsewhere without touching the registry.
+        if let Ok(dir) = std::env::var("WHATSAY_DATA_DIR") {
+            let dir = dir.trim();
+            if !dir.is_empty() {
+                return Self::from_data_root(Path::new(dir));
+            }
+        }
+        if let Some((DataRoot::Custom(root), _)) = data_root_override() {
+            return Self::from_data_root(&root);
+        }
         match Self::of("zapfast") {
             Some(dirs) => dirs,
             None => {
@@ -34,6 +46,137 @@ impl AppDirs {
         }
     }
 
+    /// All app data under one user-chosen directory: config, chat history
+    /// and session state (`data`), downloaded files and caches (`cache`),
+    /// and the single-instance lock (`run`).
+    fn from_data_root(root: &Path) -> Self {
+        Self {
+            config: root.join("config"),
+            state: root.join("data"),
+            cache: root.join("cache"),
+            runtime: root.join("run"),
+        }
+    }
+
+    /// Whether this location already holds app data worth keeping.
+    fn has_data(&self) -> bool {
+        self.state.join("archive.db").exists()
+            || self.state.join("session.db").exists()
+            || self.config.join("settings.json").exists()
+    }
+
+    /// Moves all data to the data root chosen in `datadir.txt`, when the
+    /// data is not already there. The archive's keyring key is copied before
+    /// anything moves, so an encrypted archive stays readable under the new
+    /// folder's keyring identity.
+    ///
+    /// Call only after acquiring the instance guard, and before `ensure()`.
+    pub fn adopt_data_root(&self) -> std::io::Result<()> {
+        let Some((desired, prev)) = data_root_override() else {
+            return Ok(());
+        };
+        let Some((from, to)) = Self::data_root_migration(self, &desired, &prev) else {
+            return Ok(());
+        };
+        from.migrate_to_with(&to, |from, to| {
+            crate::archive::copy_archive_key(from, to)
+                .map_err(|error| std::io::Error::other(format!("{error:#}")))
+        })
+    }
+
+    /// Decides whether data needs moving: the desired root lacks data while
+    /// a previous location still has it. Returns the move's source and
+    /// destination.
+    fn data_root_migration(
+        current: &AppDirs,
+        desired: &DataRoot,
+        prev: &DataRoot,
+    ) -> Option<(AppDirs, AppDirs)> {
+        let target = match desired {
+            DataRoot::Custom(root) => Self::from_data_root(root),
+            DataRoot::Default => Self::of("zapfast")?,
+        };
+        // discover() already pointed us here; anything else means an env
+        // override is in play, which never migrates.
+        if current.state != target.state || target.has_data() {
+            return None;
+        }
+        let from = match prev {
+            DataRoot::Custom(root) => Self::from_data_root(root),
+            DataRoot::Default => Self::of("zapfast")?,
+        };
+        if !from.has_data() || from.state == target.state {
+            return None;
+        }
+        Some((from, target))
+    }
+
+    fn migrate_to_with(
+        &self,
+        target: &AppDirs,
+        copy_key: impl FnOnce(&Path, &Path) -> std::io::Result<()>,
+    ) -> std::io::Result<()> {
+        let from_archive = self.state.join("archive.db");
+        if from_archive.exists() {
+            copy_key(&from_archive, &target.state.join("archive.db"))?;
+        }
+        for (from, to) in [
+            (&self.config, &target.config),
+            (&self.state, &target.state),
+            (&self.cache, &target.cache),
+            (&self.runtime, &target.runtime),
+        ] {
+            adopt_directory(from, to)?;
+        }
+        Ok(())
+    }
+}
+
+/// Where the app should keep its data: the platform directories, or one
+/// user-chosen root.
+#[derive(Debug, PartialEq)]
+enum DataRoot {
+    Default,
+    Custom(PathBuf),
+}
+
+/// Reads the data-location choice: `WHATSAY_DATA_DIR` wins, otherwise
+/// `datadir.txt` next to the executable (written by the installer).
+/// Returns the desired root and the previously chosen one, if any.
+fn data_root_override() -> Option<(DataRoot, DataRoot)> {
+    let exe_dir = std::env::current_exe()
+        .ok()?
+        .parent()
+        .map(Path::to_path_buf)?;
+    data_root_override_in(&exe_dir)
+}
+
+fn data_root_override_in(dir: &Path) -> Option<(DataRoot, DataRoot)> {
+    let text = std::fs::read_to_string(dir.join("datadir.txt")).ok()?;
+    let mut lines = text.lines().map(str::trim);
+    let desired = parse_data_root(lines.next()?)?;
+    let prev = lines
+        .next()
+        .map(parse_data_root)
+        .unwrap_or(Some(DataRoot::Default));
+    Some((desired, prev?))
+}
+
+/// An absolute path, or the word `default`. Anything else is ignored so a
+/// hand-edited file cannot send the app somewhere surprising.
+fn parse_data_root(text: &str) -> Option<DataRoot> {
+    if text.is_empty() || text.eq_ignore_ascii_case("default") {
+        return Some(DataRoot::Default);
+    }
+    let path = PathBuf::from(text);
+    if path.is_absolute() {
+        Some(DataRoot::Custom(path))
+    } else {
+        None
+    }
+}
+
+impl AppDirs {
     /// Standard platform directories for the app.
     fn of(name: &str) -> Option<Self> {
         let project = ProjectDirs::from("me", "paolino", name)?;
@@ -719,5 +862,119 @@ mod tests {
         );
         assert!(!account.session_db().exists());
         std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn data_root_override_parses_the_installer_file() {
+        let root = root("datadir-parse");
+        assert_eq!(data_root_override_in(&root), None);
+        std::fs::write(root.join("datadir.txt"), "").unwrap();
+        assert_eq!(data_root_override_in(&root), None);
+        std::fs::write(root.join("datadir.txt"), "relative/path").unwrap();
+        assert_eq!(data_root_override_in(&root), None);
+
+        let custom = root.join("WhatsayData");
+        std::fs::write(root.join("datadir.txt"), format!("{}\n", custom.display())).unwrap();
+        assert_eq!(
+            data_root_override_in(&root),
+            Some((DataRoot::Custom(custom.clone()), DataRoot::Default))
+        );
+
+        let prev = root.join("OldData");
+        std::fs::write(
+            root.join("datadir.txt"),
+            format!("{}\n{}\n", custom.display(), prev.display()),
+        )
+        .unwrap();
+        assert_eq!(
+            data_root_override_in(&root),
+            Some((DataRoot::Custom(custom), DataRoot::Custom(prev)))
+        );
+
+        std::fs::write(root.join("datadir.txt"), "default\n").unwrap();
+        assert_eq!(
+            data_root_override_in(&root),
+            Some((DataRoot::Default, DataRoot::Default))
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn data_root_migration_moves_data_only_once() {
+        let root = root("datadir-migrate");
+        let from = AppDirs::from_data_root(&root.join("from"));
+        let to = AppDirs::from_data_root(&root.join("to"));
+        // Nothing anywhere: no move.
+        assert!(
+            data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
+        );
+        // Data already at the destination: no move.
+        std::fs::create_dir_all(&to.state).unwrap();
+        std::fs::write(to.state.join("archive.db"), b"history").unwrap();
+        assert!(
+            data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
+        );
+        std::fs::remove_dir_all(&to.state).unwrap();
+        // Data at the previous root: move.
+        std::fs::create_dir_all(&from.state).unwrap();
+        std::fs::write(from.state.join("archive.db"), b"history").unwrap();
+        std::fs::create_dir_all(&from.config).unwrap();
+        std::fs::write(from.config.join("settings.json"), b"{}").unwrap();
+        let (got_from, got_to) = data_root_migration(
+            &to,
+            &DataRoot::Custom(to_path(&to)),
+            &DataRoot::Custom(from_path(&from)),
+        )
+        .expect("should migrate");
+        assert_eq!(got_from.state, from.state);
+        assert_eq!(got_to.state, to.state);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn data_root_migrate_moves_folders_and_copies_the_key_first() {
+        use std::sync::Mutex;
+        let root = root("datadir-move");
+        let from = AppDirs::from_data_root(&root.join("from"));
+        let to = AppDirs::from_data_root(&root.join("to"));
+        std::fs::create_dir_all(&from.state).unwrap();
+        std::fs::write(from.state.join("archive.db"), b"encrypted pages").unwrap();
+        std::fs::create_dir_all(&from.config).unwrap();
+        std::fs::write(from.config.join("settings.json"), b"{}").unwrap();
+
+        let copied: Mutex<Vec<(PathBuf, PathBuf)>> = Mutex::new(Vec::new());
+        from.migrate_to_with(&to, |f, t| {
+            copied
+                .lock()
+                .unwrap()
+                .push((f.to_path_buf(), t.to_path_buf()));
+            Ok(())
+        })
+        .unwrap();
+
+        // The key is copied before the archive moves.
+        assert_eq!(
+            copied.lock().unwrap().as_slice(),
+            &[(from.state.join("archive.db"), to.state.join("archive.db"))]
+        );
+        assert_eq!(
+            std::fs::read(to.state.join("archive.db")).unwrap(),
+            b"encrypted pages"
+        );
+        assert_eq!(
+            std::fs::read(to.config.join("settings.json")).unwrap(),
+            b"{}"
+        );
+        assert!(!from.state.exists());
+        assert!(!from.config.exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    fn to_path(dirs: &AppDirs) -> PathBuf {
+        dirs.state.parent().unwrap().to_path_buf()
+    }
+
+    fn from_path(dirs: &AppDirs) -> PathBuf {
+        to_path(dirs)
     }
 }
