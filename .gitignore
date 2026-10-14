@@ -14,3 +14,8 @@
 /packaging/flatpak/flatpak-cargo-generator.py
 /.flatpak-builder/
 /build-dir/
+
+# Local Windows-packaging artifacts (see packaging/windows/whatsay.nsi header
+# for where to fetch them); the built installer itself is a release artifact.
+packaging/windows/*.dll
+packaging/windows/whatsay-v*-setup.exe
