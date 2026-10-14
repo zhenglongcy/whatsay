@@ -7,11 +7,11 @@
 ;
 ; Besides the exe, the script expects these files next to it:
 ;   whatsay.ico        - app icon (in the repo)
-;   libstdc++-6.dll    - MinGW C++ runtime the gnu-target exe links against.
-;                        Extract from the gcc-mingw-w64-x86-64-posix-runtime
-;                        .deb: /usr/lib/gcc/x86_64-w64-mingw32/*/libstdc++-6.dll
-;                        (Not committed: 26 MB. Windows finds it next to the
-;                        exe, no system install needed.)
+;   libstdc++-6.dll, libgcc_s_seh-1.dll, libwinpthread-1.dll
+;                        - MinGW C++ runtime closure the gnu-target exe needs
+;                        (see File list below). From gcc-mingw-w64-x86-64-posix-runtime
+;                        and mingw-w64-x86-64-dev .debs. Not committed (26 MB
+;                        total). Windows finds them next to the exe.
 
 !define APPNAME "Whatsay"
 !define APPVERSION "0.19.0"
@@ -63,7 +63,12 @@ Section "${APPNAME}" SecMain
     FileClose $0
 
   File "${BINARY}"
+  ; MinGW C++ runtime: the full DLL closure the gnu-target exe needs.
+  ; whatsay.exe -> libstdc++-6.dll -> { libgcc_s_seh-1.dll, libwinpthread-1.dll }
+  ; (verified with objdump; both levels bottom out at system DLLs only)
   File "libstdc++-6.dll"
+  File "libgcc_s_seh-1.dll"
+  File "libwinpthread-1.dll"
   File "${SRCROOT}\packaging\windows\whatsay.ico"
   ; Updaters up to 0.16.5 relaunch the executable they were started from, so an
   ; update begun as fastsapp.exe needs that file to come back. The app deletes
@@ -113,6 +118,8 @@ SectionEnd
 Section "Uninstall"
   Delete "$INSTDIR\${APPEXE}"
   Delete "$INSTDIR\libstdc++-6.dll"
+  Delete "$INSTDIR\libgcc_s_seh-1.dll"
+  Delete "$INSTDIR\libwinpthread-1.dll"
   Delete "$INSTDIR\fastsapp.exe"
   Delete "$INSTDIR\README.md"
   Delete "$INSTDIR\LICENSE"
