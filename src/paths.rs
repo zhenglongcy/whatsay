@@ -65,6 +65,14 @@ impl AppDirs {
             || self.config.join("settings.json").exists()
     }
 
+    /// Whether the state directory's database markers already exist here.
+    /// The state directory moves last, so this doubles as "a previous
+    /// migration already finished": an interrupted migration retries
+    /// instead of stranding half-moved folders.
+    fn state_migrated(&self) -> bool {
+        self.state.join("archive.db").exists() || self.state.join("session.db").exists()
+    }
+
     /// Moves all data to the data root chosen in `datadir.txt`, when the
     /// data is not already there. The archive's keyring key is copied before
     /// anything moves, so an encrypted archive stays readable under the new
@@ -98,7 +106,7 @@ impl AppDirs {
         };
         // discover() already pointed us here; anything else means an env
         // override is in play, which never migrates.
-        if current.state != target.state || target.has_data() {
+        if current.state != target.state || target.state_migrated() {
             return None;
         }
         let from = match prev {
@@ -120,11 +128,14 @@ impl AppDirs {
         if from_archive.exists() {
             copy_key(&from_archive, &target.state.join("archive.db"))?;
         }
+        // The state directory moves last: its database markers are what
+        // state_migrated() looks at, so an interrupted move is retried
+        // instead of leaving half-moved folders behind.
         for (from, to) in [
             (&self.config, &target.config),
-            (&self.state, &target.state),
             (&self.cache, &target.cache),
             (&self.runtime, &target.runtime),
+            (&self.state, &target.state),
         ] {
             adopt_directory(from, to)?;
         }
@@ -350,7 +361,7 @@ impl AppDirs {
             })?;
         }
         for name in pending {
-            std::fs::rename(self.state.join(name), dest.state.join(name))?;
+            move_path(&self.state.join(name), &dest.state.join(name))?;
         }
         // Make the renames durable before anything opens the databases.
         #[cfg(unix)]
@@ -507,9 +518,76 @@ fn move_file(from: &Path, to: &Path) -> std::io::Result<()> {
         if let Some(parent) = to.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::rename(from, to)?;
+        move_path(from, to)?;
     }
     Ok(())
+}
+
+/// Moves a file or directory. Windows cannot rename across drives
+/// (os error 17, "the system cannot move the file to a different disk
+/// drive"), so a cross-device rename falls back to copying aside and
+/// swapping in: the copy goes to a staging name on the destination drive,
+/// then a same-drive rename swaps it into place atomically. An interrupted
+/// copy leaves the source intact and no partial destination behind, so the
+/// next start simply retries.
+fn move_path(from: &Path, to: &Path) -> std::io::Result<()> {
+    match std::fs::rename(from, to) {
+        Ok(()) => Ok(()),
+        Err(error) => {
+            let cross_device = error.kind() == std::io::ErrorKind::CrossesDevices || {
+                #[cfg(windows)]
+                {
+                    error.raw_os_error() == Some(17) // ERROR_NOT_SAME_DEVICE
+                }
+                #[cfg(not(windows))]
+                {
+                    false
+                }
+            };
+            if !cross_device {
+                return Err(error);
+            }
+            move_path_cross_device(from, to)
+        }
+    }
+}
+
+/// Copy-and-swap fallback for [`move_path`] when rename cannot cross drives.
+fn move_path_cross_device(from: &Path, to: &Path) -> std::io::Result<()> {
+    let staging = to.with_extension("migrating");
+    if staging.exists() {
+        remove_path(&staging)?;
+    }
+    copy_path(from, &staging)?;
+    std::fs::rename(&staging, to)?;
+    remove_path(from)?;
+    Ok(())
+}
+
+fn copy_path(from: &Path, to: &Path) -> std::io::Result<()> {
+    let meta = std::fs::symlink_metadata(from)?;
+    if meta.is_dir() {
+        std::fs::create_dir_all(to)?;
+        for entry in std::fs::read_dir(from)? {
+            let entry = entry?;
+            copy_path(&entry.path(), &to.join(entry.file_name()))?;
+        }
+        Ok(())
+    } else {
+        if let Some(parent) = to.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+        std::fs::copy(from, to)?;
+        Ok(())
+    }
+}
+
+fn remove_path(path: &Path) -> std::io::Result<()> {
+    if std::fs::symlink_metadata(path)?.is_dir() {
+        std::fs::remove_dir_all(path)
+    } else {
+        std::fs::remove_file(path)
+    }
 }
 
 #[cfg(unix)]
@@ -547,13 +625,14 @@ fn runtime_dir(project: &ProjectDirs, state: &Path) -> PathBuf {
 }
 
 /// Rename whole directories so SQLite databases travel with their WAL files.
-/// A failed move stops startup before empty replacement directories are made.
+/// Falls back to copy-and-swap across drives. A failed move stops startup
+/// before empty replacement directories are made.
 fn adopt_directory(from: &Path, to: &Path) -> std::io::Result<()> {
     if from.is_dir() && !to.try_exists()? {
         if let Some(parent) = to.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        std::fs::rename(from, to)?;
+        move_path(from, to)?;
     }
     Ok(())
 }
@@ -967,6 +1046,43 @@ mod tests {
         );
         assert!(!from.state.exists());
         assert!(!from.config.exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cross_device_move_copies_tree_then_removes_source() {
+        let root = root("cross-device");
+        let from = root.join("from");
+        let to = root.join("nested").join("to");
+        std::fs::create_dir_all(from.join("sub")).unwrap();
+        std::fs::write(from.join("top.txt"), b"top").unwrap();
+        std::fs::write(from.join("sub").join("inner.txt"), b"inner").unwrap();
+        // A stale staging directory from an interrupted move is cleared.
+        std::fs::create_dir_all(to.with_extension("migrating").join("junk")).unwrap();
+
+        move_path_cross_device(&from, &to).unwrap();
+
+        assert_eq!(std::fs::read(to.join("top.txt")).unwrap(), b"top");
+        assert_eq!(
+            std::fs::read(to.join("sub").join("inner.txt")).unwrap(),
+            b"inner"
+        );
+        assert!(!from.exists());
+        assert!(!to.with_extension("migrating").exists());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn cross_device_move_handles_single_file() {
+        let root = root("cross-device-file");
+        let from = root.join("a.txt");
+        let to = root.join("b.txt");
+        std::fs::write(&from, b"data").unwrap();
+
+        move_path_cross_device(&from, &to).unwrap();
+
+        assert_eq!(std::fs::read(&to).unwrap(), b"data");
+        assert!(!from.exists());
         std::fs::remove_dir_all(root).unwrap();
     }
 

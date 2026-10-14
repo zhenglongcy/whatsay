@@ -98,9 +98,9 @@ Function DataDirLeave
 FunctionEnd
 
 !insertmacro MUI_PAGE_WELCOME
-Page custom DataDirCreate DataDirLeave
 !insertmacro MUI_PAGE_COMPONENTS
 !insertmacro MUI_PAGE_DIRECTORY
+Page custom DataDirCreate DataDirLeave
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
 !insertmacro MUI_UNPAGE_CONFIRM
@@ -182,6 +182,9 @@ Section "${APPNAME}" SecMain
   CreateDirectory "$SMPROGRAMS\${APPNAME}"
   CreateShortcut "$SMPROGRAMS\${APPNAME}\${APPNAME}.lnk" \
     "$INSTDIR\${APPEXE}" "" "$INSTDIR\whatsay.ico" 0
+  ; Tell Explorer the icon changed so shortcuts do not keep showing a
+  ; stale cached icon.
+  System::Call 'shell32.dll::SHChangeNotify(i 0x08000000, i 0, i 0, i 0)'
 
   ; Add/Remove Programs entry (per-user).
   WriteRegStr HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\${APPID}" \
