@@ -906,13 +906,13 @@ mod tests {
         let to = AppDirs::from_data_root(&root.join("to"));
         // Nothing anywhere: no move.
         assert!(
-            data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
+            AppDirs::data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
         );
         // Data already at the destination: no move.
         std::fs::create_dir_all(&to.state).unwrap();
         std::fs::write(to.state.join("archive.db"), b"history").unwrap();
         assert!(
-            data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
+            AppDirs::data_root_migration(&to, &DataRoot::Custom(to_path(&to)), &DataRoot::Default).is_none()
         );
         std::fs::remove_dir_all(&to.state).unwrap();
         // Data at the previous root: move.
@@ -920,7 +920,7 @@ mod tests {
         std::fs::write(from.state.join("archive.db"), b"history").unwrap();
         std::fs::create_dir_all(&from.config).unwrap();
         std::fs::write(from.config.join("settings.json"), b"{}").unwrap();
-        let (got_from, got_to) = data_root_migration(
+        let (got_from, got_to) = AppDirs::data_root_migration(
             &to,
             &DataRoot::Custom(to_path(&to)),
             &DataRoot::Custom(from_path(&from)),

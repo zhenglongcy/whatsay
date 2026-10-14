@@ -441,7 +441,7 @@ mod tests {
         let key = [7; 32];
         open(&old_archive, &key).unwrap();
         let store = keyring_core::mock::Store::new().unwrap();
-        let api: &dyn CredentialStoreApi = &store;
+        let api: &dyn CredentialStoreApi = &*store;
         let identity = identity_for(old_dir.path()).unwrap();
         api.build(LEGACY_SERVICE, &identity, None)
             .unwrap()
