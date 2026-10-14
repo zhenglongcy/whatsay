@@ -10,6 +10,12 @@ use zeroize::Zeroizing;
 
 const HEADER: &[u8; 16] = b"SQLite format 3\0";
 
+const SERVICE: &str = "rocks.zapfast.Whatsay";
+/// Service name the original ZapFast releases stored the archive key under.
+/// Upgraders still have their key there; read it from the legacy name when
+/// the new name has no entry, then keep saving under the new name.
+const LEGACY_SERVICE: &str = "rocks.zapfast.ZapFast";
+
 fn plaintext(path: &Path) -> Result<bool> {
     let mut file = match fs::File::open(path) {
         Ok(file) => file,
@@ -28,11 +34,34 @@ pub(super) fn key_for(path: &Path) -> Result<Zeroizing<[u8; 32]>> {
     let parent = path.parent().context("Archive has no parent directory")?;
     fs::create_dir_all(parent)?;
     let store = platform_store()?;
+    let entry = entry_with_legacy_fallback(&*store, &identity_for(parent)?)?;
+    key_from_entry(path, &entry)
+}
+
+/// Opens the keyring entry for `identity`, falling back to the service name
+/// the original ZapFast releases used. Returns the new-name entry when
+/// neither exists, so new credentials are saved under the new name.
+fn entry_with_legacy_fallback(
+    store: &dyn CredentialStoreApi,
+    identity: &str,
+) -> Result<keyring_core::Entry> {
     let entry = store
-        .build("rocks.zapfast.Whatsay", &identity_for(parent)?, None)
+        .build(SERVICE, identity, None)
         .map_err(keyring_error)
         .context("The OS keyring could not open Whatsay's archive key")?;
-    key_from_entry(path, &entry)
+    match entry.get_secret() {
+        Err(keyring_core::Error::NoEntry) => {
+            let legacy = store
+                .build(LEGACY_SERVICE, identity, None)
+                .map_err(keyring_error)
+                .context("The OS keyring could not open Whatsay's archive key")?;
+            match legacy.get_secret() {
+                Err(keyring_core::Error::NoEntry) => Ok(entry),
+                _ => Ok(legacy),
+            }
+        }
+        _ => Ok(entry),
+    }
 }
 
 /// Copies the keyring entry when an archive moves to another folder.
@@ -61,10 +90,7 @@ fn copy_archive_key_in(
     if old_parent.canonicalize()? == new_parent.canonicalize()? {
         return Ok(());
     }
-    let old_entry = store
-        .build("rocks.zapfast.Whatsay", &identity_for(old_parent)?, None)
-        .map_err(keyring_error)
-        .context("The OS keyring could not open Whatsay's archive key")?;
+    let old_entry = entry_with_legacy_fallback(store, &identity_for(old_parent)?)?;
     let key = match old_entry.get_secret() {
         Ok(secret) => {
             ensure!(
@@ -87,7 +113,7 @@ fn copy_archive_key_in(
         }
     };
     let new_entry = store
-        .build("rocks.zapfast.Whatsay", &identity_for(new_parent)?, None)
+        .build(SERVICE, &identity_for(new_parent)?, None)
         .map_err(keyring_error)
         .context("The OS keyring could not open Whatsay's archive key")?;
     new_entry
@@ -108,16 +134,20 @@ fn copy_archive_key_in(
     Ok(())
 }
 
-/// Deletes the keyring entry of an archive folder that is gone for good,
-/// such as a removed account's. Never call it while the archive exists.
+/// Deletes the keyring entries of an archive folder that is gone for good,
+/// such as a removed account's, under both the current and the legacy
+/// service name. Never call it while the archive exists.
 pub fn forget_archive_key(identity: &str) -> Result<()> {
-    let entry = platform_store()?
-        .build("rocks.zapfast.Whatsay", identity, None)
-        .map_err(keyring_error)?;
-    match entry.delete_credential() {
-        Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
-        Err(error) => Err(keyring_error(error)),
+    for service in [SERVICE, LEGACY_SERVICE] {
+        let entry = platform_store()?
+            .build(service, identity, None)
+            .map_err(keyring_error)?;
+        match entry.delete_credential() {
+            Ok(()) | Err(keyring_core::Error::NoEntry) => Ok(()),
+            Err(error) => Err(keyring_error(error)),
+        }?;
     }
+    Ok(())
 }
 
 /// The keyring identity of the archive at `path`, while its folder exists.
@@ -399,6 +429,45 @@ mod tests {
                 .contains("Unlock")
         );
         assert_eq!(fs::read(&path).unwrap(), original);
+    }
+
+    #[test]
+    fn migration_reads_the_legacy_zapfast_keyring_entry() {
+        let old_dir = directory();
+        let new_dir = directory();
+        let old_archive = old_dir.path().join("archive.db");
+        let new_archive = new_dir.path().join("archive.db");
+        // Encrypted archive, with its key stored the way original ZapFast did.
+        let key = [7; 32];
+        open(&old_archive, &key).unwrap();
+        let store = keyring_core::mock::Store::new().unwrap();
+        let api: &dyn CredentialStoreApi = &store;
+        let identity = identity_for(old_dir.path()).unwrap();
+        api.build(LEGACY_SERVICE, &identity, None)
+            .unwrap()
+            .set_secret(&key)
+            .unwrap();
+        // The migration finds the legacy key and saves it under the new name.
+        copy_archive_key_in(&old_archive, &new_archive, api).unwrap();
+        let new_identity = identity_for(new_dir.path()).unwrap();
+        assert_eq!(
+            api.build(SERVICE, &new_identity, None)
+                .unwrap()
+                .get_secret()
+                .unwrap(),
+            key
+        );
+        // A missing key under both names still refuses an encrypted archive.
+        api.build(LEGACY_SERVICE, &identity, None)
+            .unwrap()
+            .delete_credential()
+            .unwrap();
+        assert!(
+            copy_archive_key_in(&old_archive, &new_archive, api)
+                .unwrap_err()
+                .to_string()
+                .contains("missing")
+        );
     }
 
     /// Stands in for the Windows store's private error type, whose text for
