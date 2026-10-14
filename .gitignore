@@ -19,3 +19,4 @@
 # for where to fetch them); the built installer itself is a release artifact.
 packaging/windows/*.dll
 packaging/windows/whatsay-v*-setup.exe
+packaging/windows/whatsay.exe
