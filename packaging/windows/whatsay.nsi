@@ -4,6 +4,14 @@
 ; installing over an older Inno-based copy upgrades it in place.
 ;
 ; Build on Linux:  makensis packaging/windows/whatsay.nsi
+;
+; Besides the exe, the script expects these files next to it:
+;   whatsay.ico        - app icon (in the repo)
+;   libstdc++-6.dll    - MinGW C++ runtime the gnu-target exe links against.
+;                        Extract from the gcc-mingw-w64-x86-64-posix-runtime
+;                        .deb: /usr/lib/gcc/x86_64-w64-mingw32/*/libstdc++-6.dll
+;                        (Not committed: 26 MB. Windows finds it next to the
+;                        exe, no system install needed.)
 
 !define APPNAME "Whatsay"
 !define APPVERSION "0.19.0"
@@ -55,6 +63,7 @@ Section "${APPNAME}" SecMain
     FileClose $0
 
   File "${BINARY}"
+  File "libstdc++-6.dll"
   File "${SRCROOT}\packaging\windows\whatsay.ico"
   ; Updaters up to 0.16.5 relaunch the executable they were started from, so an
   ; update begun as fastsapp.exe needs that file to come back. The app deletes
@@ -103,6 +112,7 @@ SectionEnd
 
 Section "Uninstall"
   Delete "$INSTDIR\${APPEXE}"
+  Delete "$INSTDIR\libstdc++-6.dll"
   Delete "$INSTDIR\fastsapp.exe"
   Delete "$INSTDIR\README.md"
   Delete "$INSTDIR\LICENSE"
