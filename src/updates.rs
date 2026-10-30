@@ -33,9 +33,11 @@ pub const CONFIG: UpdateConfig = UpdateConfig {
     // lives outside the repository and is never published.
     additional_publisher_keys: &[],
     // The repository comes from UPDATE_REPO, our own releases channel.
-    // The slug stays "zapfast" so existing installs' marker files and
-    // staging folders keep matching.
-    ..UpdateConfig::new(UPDATE_REPO, "Whatsay", "zapfast", env!("CARGO_PKG_VERSION"))
+    // The slug is "whatsay" now: release assets and installer markers
+    // carry our own name. The 0.20.2 release also ships the old
+    // "zapfast" asset name once, so installs from 0.20.1 and earlier
+    // still find their update; after that, only "whatsay" is needed.
+    ..UpdateConfig::new(UPDATE_REPO, "Whatsay", "whatsay", env!("CARGO_PKG_VERSION"))
 };
 
 /// An updater on the proxy-aware reqwest client, pointed at our own
@@ -56,7 +58,7 @@ mod tests {
     fn update_config_is_valid() {
         CONFIG.validate().unwrap();
         assert_eq!(CONFIG.current_version, env!("CARGO_PKG_VERSION"));
-        assert_eq!(CONFIG.slug, "zapfast");
+        assert_eq!(CONFIG.slug, "whatsay");
     }
 
     #[test]

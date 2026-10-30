@@ -7,15 +7,15 @@
 <p align="center"><strong>WhatsApp, native and fast.</strong><br>A lightweight WhatsApp app for Linux, macOS, and Windows.</p>
 
 <p align="center">
-  <a href="https://zapfast.rocks/download/"><strong>Download</strong></a> ·
-  <a href="https://zapfast.rocks/getting-started/">Getting started</a> ·
-  <a href="https://zapfast.rocks/using-zapfast/">User guide</a> ·
+  <a href="https://github.com/zhenglongcy/whatsay/releases"><strong>Download</strong></a> ·
+  <a href="https://github.com/zhenglongcy/whatsay">Getting started</a> ·
+  <a href="https://github.com/zhenglongcy/whatsay">User guide</a> ·
   <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
 <p align="center">
   <a href="Cargo.toml"><img src="https://img.shields.io/badge/Built_with-Rust-00a884" alt="Built with Rust"></a>
-  <a href="https://zapfast.rocks/download/"><img src="https://img.shields.io/badge/Linux_%C2%B7_macOS_%C2%B7_Windows-24292f" alt="Linux, macOS, and Windows"></a>
+  <a href="https://github.com/zhenglongcy/whatsay/releases"><img src="https://img.shields.io/badge/Linux_%C2%B7_macOS_%C2%B7_Windows-24292f" alt="Linux, macOS, and Windows"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-00a884" alt="MIT license"></a>
 </p>
 
@@ -26,7 +26,6 @@ companion device through
 [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust) and has no browser
 engine. In our Linux test it opens in under a second and uses about 200 MB of
 idle RAM, against 1.13 GB for WhatsApp Web.
-[See the measurements](https://zapfast.rocks/benchmarks/).
 
 The interface is available in English, Chinese (Simplified and Traditional),
 French, German, Indonesian, Italian, Portuguese (Brazil), Russian, Spanish,
@@ -62,11 +61,8 @@ https://github.com/user-attachments/assets/2bf86b54-45fc-4add-8de7-c426c3cdad9b
 
 | Platform | Installation |
 |---|---|
-| **macOS** | `brew install --cask crmne/tap/zapfast`, or [download the Mac app](https://zapfast.rocks/download/#macos). |
-| **Arch Linux** | `yay -S zapfast-bin` |
-| **Windows** | Choose your build on the [Download page](https://zapfast.rocks/download/#windows). |
-| **Other Linux** | Find Nix, AppImage, and other options on the [Download page](https://zapfast.rocks/download/#linux). |
-| **From source** | Follow [Getting started](https://zapfast.rocks/getting-started/) for dependencies and commands. |
+| **Windows** | Download the installer from [Releases](https://github.com/zhenglongcy/whatsay/releases). |
+| **From source** | Follow [Contributing](CONTRIBUTING.md) for dependencies and commands. |
 
 ## Link your phone
 
@@ -78,25 +74,13 @@ https://github.com/user-attachments/assets/2bf86b54-45fc-4add-8de7-c426c3cdad9b
    scroll up.
 
 The link survives restarts, and your phone does not need to stay online to
-read what Whatsay has already stored. See
-[Getting started](https://zapfast.rocks/getting-started/) for the full
-walkthrough and [How it links](https://zapfast.rocks/how-it-links/) for the
-details.
+read what Whatsay has already stored.
 
 ## Guides and help
 
-The complete guide lives at **[zapfast.rocks](https://zapfast.rocks/)**.
-
 | You want to… | Read |
 |---|---|
-| Know what Whatsay does and does not do yet | [What is Whatsay?](https://zapfast.rocks/what-is-zapfast/) |
-| Link your phone or build from source | [Getting started](https://zapfast.rocks/getting-started/) |
-| Learn messages, stickers, polls, and shortcuts | [Using Whatsay](https://zapfast.rocks/using-zapfast/) |
-| Find settings, stored files, encryption, the app lock, and updates | [Settings and files](https://zapfast.rocks/settings-and-files/) |
-| Make your own theme | [Making a theme](https://zapfast.rocks/themes/) |
-| Understand what stays on this computer | [How it links](https://zapfast.rocks/how-it-links/) |
-| Understand account risk | [Account safety](https://zapfast.rocks/what-is-zapfast/#account-safety) |
-| Report a bug or propose a feature | Read [Contributing](CONTRIBUTING.md), then use the [issue forms](https://github.com/crmne/zapfast/issues/new/choose). |
+| Report a bug or propose a feature | Read [Contributing](CONTRIBUTING.md), then use the [issue forms](https://github.com/zhenglongcy/whatsay/issues/new/choose). |
 
 ## Contributing
 
@@ -164,9 +148,9 @@ Licensed under the [MIT License](LICENSE).
 
 ## Star history
 
-<a href="https://www.star-history.com/?repos=crmne%2Fzapfast&amp;type=date">
+<a href="https://www.star-history.com/?repos=zhenglongcy%2Fwhatsay&amp;type=date">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=crmne/zapfast&amp;type=date&amp;theme=dark">
-    <img alt="Whatsay GitHub stars over time" src="https://api.star-history.com/chart?repos=crmne/zapfast&amp;type=date">
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=zhenglongcy/whatsay&amp;type=date&amp;theme=dark">
+    <img alt="Whatsay GitHub stars over time" src="https://api.star-history.com/chart?repos=zhenglongcy/whatsay&amp;type=date">
   </picture>
 </a>
