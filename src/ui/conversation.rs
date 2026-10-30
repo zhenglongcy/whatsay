@@ -11372,7 +11372,7 @@ mod reaction_tests {
 
     #[test]
     fn every_message_menu_label_can_be_translated() {
-        const TEMPLATE: &str = include_str!("../../assets/i18n/zapfast.pot");
+        const TEMPLATE: &str = include_str!("../../assets/i18n/whatsay.pot");
         // Line by line: a Windows checkout may end the template's lines in CRLF.
         let translatable = |text: &str| {
             let msgid = format!("msgid \"{text}\"");

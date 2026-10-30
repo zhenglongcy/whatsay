@@ -336,6 +336,7 @@ mod tests {
             mentions: Vec::new(),
             forwarded: false,
             thumbnail: None,
+            history_order: None,
         }
     }
 

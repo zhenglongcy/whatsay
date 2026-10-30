@@ -438,8 +438,16 @@ mod tests {
         let old_archive = old_dir.path().join("archive.db");
         let new_archive = new_dir.path().join("archive.db");
         // Encrypted archive, with its key stored the way original Whatsay did.
+        // Write a row first: opening a fresh archive leaves a 0-byte file
+        // (SQLite only materializes the header on the first write), and an
+        // empty file reads as plaintext, which would let the missing-key
+        // case below pass silently instead of erroring.
         let key = [7; 32];
-        open(&old_archive, &key).unwrap();
+        let connection = open(&old_archive, &key).unwrap();
+        connection
+            .execute_batch("CREATE TABLE probe (value TEXT)")
+            .unwrap();
+        drop(connection);
         let store = keyring_core::mock::Store::new().unwrap();
         let api: &dyn CredentialStoreApi = &*store;
         let identity = identity_for(old_dir.path()).unwrap();

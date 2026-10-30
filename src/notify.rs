@@ -580,7 +580,7 @@ mod tests {
 
     #[test]
     fn the_windows_shortcut_uses_the_notification_identity() {
-        let installer = include_str!("../packaging/windows/zapfast.iss");
+        let installer = include_str!("../packaging/windows/whatsay.iss");
         let shortcuts: Vec<_> = installer
             .lines()
             .filter(|line| {
