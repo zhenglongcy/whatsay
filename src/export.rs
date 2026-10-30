@@ -9,7 +9,7 @@ use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use crate::archive::Archive;
-use crate::model::{Chat, Content, Message};
+use crate::model::{CallStatus, Chat, Content, Message};
 
 /// What one export produced.
 #[derive(Clone, Debug, PartialEq)]
@@ -129,7 +129,9 @@ fn transcript_line(message: &Message) -> (String, Option<PathBuf>) {
         Content::Text { text, .. } | Content::Interactive { text, .. } => {
             (None, text.clone(), None)
         }
-        Content::Image { caption, media } => (
+        Content::Image {
+            caption, media, ..
+        } => (
             Some("[photo]".to_owned()),
             caption.clone().unwrap_or_default(),
             media.path.clone(),
@@ -208,6 +210,37 @@ fn transcript_line(message: &Message) -> (String, Option<PathBuf>) {
             (Some(format!("[poll: {question}]")), String::new(), None)
         }
         Content::Revoked => (Some("[message deleted]".to_owned()), String::new(), None),
+        Content::Call {
+            video,
+            status,
+            duration,
+            ..
+        } => {
+            let kind = if *video { "video call" } else { "voice call" };
+            let status = match status {
+                CallStatus::Answered => {
+                    if *duration > 0 {
+                        format!(
+                            "{} ({})",
+                            kind,
+                            crate::util::duration((*duration).min(u32::MAX as u64) as u32)
+                        )
+                    } else {
+                        kind.to_owned()
+                    }
+                }
+                CallStatus::Missed => format!("missed {kind}"),
+                CallStatus::Declined | CallStatus::DeclinedElsewhere => {
+                    format!("declined {kind}")
+                }
+                CallStatus::AnsweredElsewhere => format!("{kind} answered elsewhere"),
+                CallStatus::Busy => format!("{kind} (busy)"),
+                CallStatus::NoAnswer => format!("unanswered {kind}"),
+                CallStatus::ConnectionLost => format!("{kind} (connection lost)"),
+                CallStatus::Failed => format!("failed {kind}"),
+            };
+            (Some(format!("[{status}]")), String::new(), None)
+        }
         Content::Unsupported { what } => {
             (Some(format!("[unsupported: {what}]")), String::new(), None)
         }

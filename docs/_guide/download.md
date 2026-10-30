@@ -28,6 +28,16 @@ yay -S {{ name }}        # builds from the release source
 yay -S {{ name }}-git    # builds from the latest commit
 ```
 
+With [Nix](https://nixos.org), install from the flake:
+
+```sh
+nix profile install github:crmne/zapfast
+```
+
+NixOS configurations can add the repository as a flake input and include
+`inputs.zapfast.packages.${pkgs.system}.default` in
+`environment.systemPackages`.
+
 For other distributions, download a tarball with the binary, desktop file,
 and icon:
 
@@ -42,12 +52,17 @@ the new file when {{ app }} says a release is out.
 - [{{ name }}-{{ v }}-x86_64.AppImage]({{ base }}/{{ name }}-{{ v }}-x86_64.AppImage)
 - [{{ name }}-{{ v }}-aarch64.AppImage]({{ base }}/{{ name }}-{{ v }}-aarch64.AppImage)
 
-{{ app }} needs the standard egui libraries and ALSA:
-`libglvnd`, `libxkbcommon`, `wayland`, `libx11`, and `alsa-lib` (on
-Debian or Ubuntu: `libasound2`, `libgl1`, `libxkbcommon0`, `libwayland-client0`).
+{{ app }} needs glibc 2.39 or newer (Ubuntu 24.04, Debian 13, Fedora 40 and
+newer), the standard egui libraries, ALSA and libpipewire 0.3.53 or newer:
+`libglvnd`, `libxkbcommon`, `wayland`, `libx11`, `alsa-lib` and `libpipewire` (on
+Debian or Ubuntu: `libasound2t64`, `libpipewire-0.3-0t64`, `libgl1`,
+`libxkbcommon0`, `libwayland-client0`). Sound goes to PipeWire itself, else to
+PulseAudio, else to ALSA.
 Emoji come from the desktop's colour emoji font when one is installed
 (`noto-fonts-emoji`, `fonts-noto-color-emoji` on Debian), else from the copy
 {{ app }} bundles. The file picker uses `xdg-desktop-portal`.
+
+A Flatpak bundle is being prepared; {{ app }} is not on Flathub yet.
 
 ## macOS
 
@@ -82,6 +97,11 @@ To run {{ app }} without installing it, download a zip, extract it, and run
 
 - [{{ name }}-v{{ v }}-x86_64-pc-windows-msvc.zip]({{ base }}/{{ name }}-v{{ v }}-x86_64-pc-windows-msvc.zip)
 - [{{ name }}-v{{ v }}-aarch64-pc-windows-msvc.zip]({{ base }}/{{ name }}-v{{ v }}-aarch64-pc-windows-msvc.zip)
+
+{{ app }} draws with OpenGL and needs a graphics driver with OpenGL 2.1 or
+newer. Install the driver from the maker of your graphics chip: the Microsoft
+Basic Display Adapter, some virtual machines, and some remote desktop sessions
+offer no usable OpenGL, and Windows then shows a message instead of starting.
 
 SmartScreen may warn about an unknown publisher on first run. Choose **More
 info**, then **Run anyway**.

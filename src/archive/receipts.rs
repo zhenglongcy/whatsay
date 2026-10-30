@@ -239,8 +239,11 @@ impl Archive {
     }
 
     /// A privacy id and a phone number identify one person, not two readers.
-    pub(super) fn merge_group_recipient(&self, lid: &str, pn: &str) -> Result<()> {
-        let transaction = self.connection.unchecked_transaction()?;
+    pub(super) fn merge_group_recipient(
+        transaction: &rusqlite::Transaction<'_>,
+        lid: &str,
+        pn: &str,
+    ) -> Result<()> {
         transaction.execute(
             "INSERT INTO group_receipts (chat, id, recipient, expected, status, delivered_at, read_at, played_at)
              SELECT chat, id, ?2, expected, status, delivered_at, read_at, played_at
@@ -262,13 +265,29 @@ impl Archive {
             params![lid, pn],
         )?;
         transaction.execute("DELETE FROM group_receipts WHERE chat = ?1", [lid])?;
-        transaction.commit()
+        Ok(())
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// The merge looks receipts up by recipient, and without this index the
+    /// startup reconciliation scanned the whole table once per identity.
+    #[test]
+    fn the_recipient_lookup_uses_its_index() {
+        let archive = Archive::in_memory().unwrap();
+        let plan: String = archive
+            .connection
+            .query_row(
+                "EXPLAIN QUERY PLAN SELECT 1 FROM group_receipts WHERE recipient = ?1",
+                ["9@lid"],
+                |row| row.get(3),
+            )
+            .unwrap();
+        assert!(plan.contains("group_receipts_by_recipient"), "{plan}");
+    }
 
     #[test]
     fn group_receipts_survive_reopening_and_use_the_last_readers_time() {

@@ -72,7 +72,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, chat: &str, id: &str) {
 /// The message, then who received, read, or played it.
 fn receipts(app: &mut App, ui: &mut egui::Ui, chat: &str, id: &str, message: &Message) {
     let palette = app.palette;
-    preview(ui, &palette, message);
+    let delivery = super::conversation::display_delivery(
+        message.status,
+        message.from_me,
+        crate::model::ChatKind::from_id(chat),
+        app.account_receipts_off,
+    );
+    preview(ui, &palette, app.locale, message, delivery);
     if crate::model::ChatKind::from_id(chat) != crate::model::ChatKind::Group {
         direct(app, ui, message);
         return;
@@ -94,10 +100,16 @@ fn receipts(app: &mut App, ui: &mut egui::Ui, chat: &str, id: &str, message: &Me
 }
 
 /// The message as its bubble shows it, shortened to a few lines.
-fn preview(ui: &mut egui::Ui, palette: &Palette, message: &Message) {
+fn preview(
+    ui: &mut egui::Ui,
+    palette: &Palette,
+    locale: crate::i18n::Locale,
+    message: &Message,
+    delivery: Delivery,
+) {
     let text = widgets::line(
         ui,
-        &message.content.summary(),
+        &message.content.summary_in(locale),
         theme::regular(14.0),
         palette.text,
         (ui.available_width() * 0.85 - 24.0).max(1.0),
@@ -111,7 +123,7 @@ fn preview(ui: &mut egui::Ui, palette: &Palette, message: &Message) {
         |ui| {
             // Room for the tail, which reaches out past the bubble's side.
             ui.add_space(widgets::TAIL_WIDTH);
-            bubble(ui, palette, message, text, width);
+            bubble(ui, palette, message, text, width, delivery);
         },
     );
 }
@@ -122,6 +134,7 @@ fn bubble(
     message: &Message,
     text: widgets::Line,
     width: f32,
+    delivery: Delivery,
 ) {
     // Drawn as the chat draws our own messages: shadow, raised edge, tail.
     let backdrop = ui.painter().add(egui::Shape::Noop);
@@ -140,7 +153,7 @@ fn bubble(
                 egui::pos2(rect.right() - 16.0, rect.bottom() - 16.0),
                 vec2(16.0, 16.0),
             );
-            widgets::ticks(ui, palette, ticks, message.status);
+            widgets::ticks(ui, palette, ticks, delivery);
             ui.painter().galley(
                 egui::pos2(
                     ticks.left() - 4.0 - clock.size().x,
@@ -157,6 +170,8 @@ fn bubble(
             shown.response.rect,
             palette.bubble_out,
             Some(widgets::Side::Right),
+            ui.ctx().pixels_per_point(),
+            ui.clip_rect().y_range(),
         ),
     );
 }
@@ -165,15 +180,30 @@ fn bubble(
 fn direct(app: &App, ui: &mut egui::Ui, message: &Message) {
     let palette = app.palette;
     let locale = app.locale;
-    let read = matches!(message.status, Delivery::Read | Delivery::Played);
-    let delivered = read || message.status == Delivery::Delivered;
-    let label = if message.status == Delivery::Played {
+    let delivery = super::conversation::display_delivery(
+        message.status,
+        message.from_me,
+        crate::model::ChatKind::from_id(&message.chat),
+        app.account_receipts_off,
+    );
+    let read = matches!(delivery, Delivery::Read | Delivery::Played);
+    let delivered = read || delivery == Delivery::Delivered;
+    let label = if delivery == Delivery::Played {
         gettext(locale, "Played")
     } else {
         gettext(locale, "Read")
     };
     let stages = [
-        (label, read, message.read_at, palette.read),
+        (
+            label,
+            read,
+            message.read_at,
+            if read {
+                palette.read
+            } else {
+                palette.secondary
+            },
+        ),
         (
             gettext(locale, "Delivered"),
             delivered,
@@ -189,7 +219,7 @@ fn direct(app: &App, ui: &mut egui::Ui, message: &Message) {
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 2.0;
                 theme::text(ui, label, theme::medium(14.0), palette.text);
-                let when = match (reached, at) {
+                let when = match (reached, known_time(at)) {
                     (true, Some(at)) => crate::util::moment_stamp(locale, at),
                     (true, None) => gettext(locale, "Time not recorded").into_owned(),
                     (false, _) => "—".to_owned(),
@@ -304,7 +334,7 @@ fn section(
             ui.vertical(|ui| {
                 ui.spacing_mut().item_spacing.y = 2.0;
                 widgets::rich_text(ui, &name, theme::regular(14.0), palette.text);
-                if let Some(at) = at(recipient) {
+                if let Some(at) = known_time(at(recipient)) {
                     theme::text(
                         ui,
                         crate::util::moment_stamp(app.locale, at),
@@ -315,6 +345,12 @@ fn section(
             });
         });
     }
+}
+
+/// A receipt time of zero or less is unknown, not the Unix epoch. Archives
+/// filed before history receipts dropped it still hold a zero.
+fn known_time(at: Option<i64>) -> Option<i64> {
+    at.filter(|&at| at > 0)
 }
 
 /// Secondary text wrapped over as many lines as it needs.
@@ -330,4 +366,17 @@ fn note(ui: &mut egui::Ui, text: &str, palette: &Palette) {
     );
     let (rect, _) = ui.allocate_exact_size(vec2(width, line.size().y), Sense::hover());
     line.paint(ui, rect.min, palette.secondary);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::known_time;
+
+    #[test]
+    fn a_zero_receipt_time_is_unknown() {
+        assert_eq!(known_time(Some(0)), None);
+        assert_eq!(known_time(Some(-1)), None);
+        assert_eq!(known_time(None), None);
+        assert_eq!(known_time(Some(1_700_000_000)), Some(1_700_000_000));
+    }
 }

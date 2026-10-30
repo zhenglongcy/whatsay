@@ -11,6 +11,17 @@ pub use fastframe_update::{
 };
 use fastframe_update::{MacConfig, ReqwestTransport, UpdateConfig};
 
+/// Our own releases repository, `owner/name`, that remote update checks
+/// read. While our own releases channel does not exist yet, this stays
+/// empty and remote update checks are off: `updater()` refuses, so the
+/// interface never offers a release from anywhere and no update banner
+/// ever appears. When our own channel is live, put its `owner/name`
+/// here (and flip the default of `Settings::check_for_updates` back on);
+/// nothing else needs to change. Never point this at the upstream
+/// repository: this build must not offer upstream releases as its own
+/// updates.
+pub const UPDATE_REPO: &str = "";
+
 /// Whatsay's releases and the names its installations have had.
 pub const CONFIG: UpdateConfig = UpdateConfig {
     // Cask and bundle names from before the rename. This also accepts
@@ -26,16 +37,28 @@ pub const CONFIG: UpdateConfig = UpdateConfig {
     // The next release key, backed up outside GitHub. Releases stay signed
     // with the current key until installs trust this one too.
     additional_publisher_keys: &[include_str!("../assets/update-public-key-next.hex")],
-    ..UpdateConfig::new(
-        "crmne/zapfast",
-        "Whatsay",
-        "zapfast",
-        env!("CARGO_PKG_VERSION"),
-    )
+    // The repository comes from UPDATE_REPO once configured. Until then
+    // this placeholder keeps CONFIG.validate() honest about the shape;
+    // it is never queried, because updater() refuses while UPDATE_REPO
+    // is empty. The slug stays "zapfast" so existing installs' marker
+    // files and staging folders keep matching.
+    ..if UPDATE_REPO.is_empty() {
+        UpdateConfig::new("whatsay/whatsay", "Whatsay", "zapfast", env!("CARGO_PKG_VERSION"))
+    } else {
+        UpdateConfig::new(UPDATE_REPO, "Whatsay", "zapfast", env!("CARGO_PKG_VERSION"))
+    }
 };
 
 /// An updater on the proxy-aware reqwest client.
+///
+/// Refuses while [`UPDATE_REPO`] is empty: this build has no update
+/// channel of its own yet, and it must never check the upstream
+/// repository for releases to offer as its own.
 pub fn updater() -> anyhow::Result<Updater> {
+    anyhow::ensure!(
+        !UPDATE_REPO.is_empty(),
+        "remote updates are not configured in this build"
+    );
     let mut builder = reqwest::blocking::Client::builder();
     if let Some(proxy) = crate::proxy::reqwest_proxy() {
         builder = builder.proxy(proxy);
@@ -55,7 +78,11 @@ mod tests {
     }
 
     #[test]
-    fn the_updater_starts_on_github() {
-        assert!(updater().unwrap().source().is_github());
+    fn remote_updates_are_off_until_our_channel_exists() {
+        // UPDATE_REPO is empty until our own releases channel is live.
+        // When it is filled in, replace this with an assertion that the
+        // updater starts on our own repository.
+        assert!(UPDATE_REPO.is_empty());
+        assert!(updater().is_err());
     }
 }

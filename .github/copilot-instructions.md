@@ -5,6 +5,11 @@ this repository. `AGENTS.md` is the canonical architecture, product-boundary,
 privacy, testing, and release guide. Keep changes narrowly scoped and preserve
 existing behavior unless the task explicitly changes it.
 
+Distinguish explicit product boundaries from current implementation limits.
+Missing features, codec restrictions, and download limits are not permanent
+exclusions. When documentation conflicts with the code, flag the stale claim
+instead of using it to reject supported behavior.
+
 ## Pull request scope and evidence
 
 Check these first, and report each failure as a blocker at the top of the
@@ -27,6 +32,10 @@ review, before any line comments:
   inside this repository. Changes those crates need go upstream.
 - Flag any feature that sends message content, audio, or contacts to a third
   party. That is outside the product boundaries.
+- Flag any automation as outside the product boundaries: bots, an MCP server,
+  or any API, command-line, plugin or scripting interface that reads, exports
+  or sends messages for another program, and scheduled, bulk or automatic
+  replies. WhatsApp's terms forbid automated use.
 
 ## Review priorities
 

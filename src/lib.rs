@@ -2,26 +2,40 @@
 
 pub mod account;
 pub mod animation;
+pub mod announcer;
 pub mod app;
 pub mod app_lock;
+#[cfg(target_os = "linux")]
+pub mod appearance;
 pub mod archive;
 pub mod audio;
 pub mod autostart;
+pub mod backdrop;
 pub mod backend;
 pub mod bidi;
+pub mod call_audio;
+pub mod call_diag;
+pub mod call_tones;
+pub mod calls;
+pub mod camera;
 #[cfg(any(test, feature = "demo"))]
 pub mod demo;
 pub mod diagnostics;
 pub mod emoji;
 pub mod export;
-pub mod i18n;
+pub mod geo;
+pub mod group_admin;pub mod i18n;
 pub mod image_cache;
 pub mod image_preview;
 #[cfg(target_os = "macos")]
 pub mod macos;
 pub mod markup;
 pub mod media_pause;
+pub mod mentions;
 pub mod model;
+pub mod motion;
+pub mod nav;
+pub mod new_group;
 pub mod notify;
 pub mod opener;
 pub mod paths;
@@ -33,6 +47,7 @@ pub mod settings;
 pub mod single_instance;
 pub mod sticker_meta;
 pub mod sticker_search;
+pub mod target;
 pub mod theme;
 pub mod timestretch;
 pub mod transcript;
@@ -41,5 +56,6 @@ pub mod ui;
 pub mod updates;
 pub mod util;
 pub mod video;
+pub mod video_rate;
 pub mod voice;
 pub mod wallpaper;

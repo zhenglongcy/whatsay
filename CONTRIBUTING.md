@@ -14,7 +14,7 @@ For a feature, explain the user problem. Discuss large changes in an issue
 before writing code. Existing code does not guarantee that a feature fits the
 project.
 
-Some boundaries come from WhatsApp or from upstream libraries:
+Product boundaries and upstream responsibilities:
 
 - The protocol comes from [whatsapp-rust](https://github.com/oxidezap/whatsapp-rust).
   A capability it does not support is fixed upstream first, not reimplemented
@@ -22,6 +22,16 @@ Some boundaries come from WhatsApp or from upstream libraries:
 - ZapFast will not embed a browser engine, add telemetry, or introduce a
   ZapFast-operated service. Features that send message content to a third
   party are out of scope.
+- ZapFast will never automate WhatsApp: no bots, MCP server, or API,
+  command-line or scripting interface that reads or sends messages, and no
+  scheduled, bulk or automatic replies. WhatsApp's terms forbid automated
+  use and it bans accounts for it.
+
+The guide's [current limitations](https://zapfast.rocks/what-is-zapfast/#what-it-does-not-do-yet)
+describe what is implemented today, not permanent exclusions. Missing features,
+codec restrictions, and download limits do not by themselves make a report out
+of scope. Check the relevant code and reported version when a guide and a
+report disagree; leave uncertain product decisions to the maintainer.
 
 Never post screenshots of real conversations, contact names, phone numbers,
 keys, or QR codes. Crop a capture to the part that shows the problem and
@@ -44,8 +54,14 @@ release status stated. Reopen the issue if it persists after updating.
    must keep compiling.
 5. **Small dependency surface.** Reuse the standard library and existing
    crates where practical. A new dependency needs a concrete benefit worth its
-   build time, binary size, maintenance, and security cost. Do not vendor or
-   fork upstream crates such as egui.
+   build time, binary size, maintenance, and security cost. Crates come from
+   crates.io or from repositories under `github.com/crmne/`; never vendor
+   dependency source or point a dependency at another fork. To fix a
+   dependency, send the fix upstream and ask the maintainer to carry it in a
+   crmne fork until a release includes it. The maintainer has explicitly
+   approved pinned commits from the official `github.com/oxidezap/whatsapp-rust`
+   repository once our carried fixes have merged upstream. CI fails on any
+   other source.
 6. **Private data.** The archive is personal data. Never log message contents,
    phone numbers, keys, or QR payloads.
 
@@ -74,7 +90,16 @@ screenshots or a short recording **in the pull request description**. Capture
 them with the `demo` feature (`cargo run --features demo -- --demo`, or
 `--demo-shot` for a headless capture) so they show only synthetic content, and
 include light and dark themes when colours or layout change. Do not commit
-screenshots, recordings, or other media to the repository.
+screenshots, recordings, comparison pages, or other review media to the
+repository: CI fails on media under `docs/` that no page uses, and on images,
+videos or HTML pages named like review evidence.
+
+An interactive HTML comparison, with theme and size selectors and Before and
+After buttons or a slider, helps with larger changes. Attach it to the pull
+request as one self-contained `.html` file with the captures embedded, which
+GitHub hands readers as a download to open in a browser, or publish it
+elsewhere, for example with GitHub Pages from your fork, and link it from the
+description. A gist does not work: GitHub shows its HTML as source.
 
 ### Checks
 
@@ -96,7 +121,8 @@ the updated PO files. Keep each translatable literal inside its own `gettext`
 call so extraction can find it. Normal Cargo builds compile the catalogs without
 gettext tools.
 
-Linux needs the development packages listed in the README; `nix develop`
+Linux needs the development packages listed in
+[Getting started](https://zapfast.rocks/getting-started/); `nix develop`
 provides the complete development environment. When changing `Cargo.lock` or
 `flake.nix`, also verify `nix build` on a Nix host or wait for the Nix CI job.
 Passing CI is required, but does not replace review for correctness, product

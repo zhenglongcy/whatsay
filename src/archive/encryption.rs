@@ -11,7 +11,7 @@ use zeroize::Zeroizing;
 const HEADER: &[u8; 16] = b"SQLite format 3\0";
 
 const SERVICE: &str = "rocks.zapfast.Whatsay";
-/// Service name the original ZapFast releases stored the archive key under.
+/// Service name the original Whatsay releases stored the archive key under.
 /// Upgraders still have their key there; read it from the legacy name when
 /// the new name has no entry, then keep saving under the new name.
 const LEGACY_SERVICE: &str = "rocks.zapfast.ZapFast";
@@ -39,7 +39,7 @@ pub(super) fn key_for(path: &Path) -> Result<Zeroizing<[u8; 32]>> {
 }
 
 /// Opens the keyring entry for `identity`, falling back to the service name
-/// the original ZapFast releases used. Returns the new-name entry when
+/// the original Whatsay releases used. Returns the new-name entry when
 /// neither exists, so new credentials are saved under the new name.
 fn entry_with_legacy_fallback(
     store: &dyn CredentialStoreApi,
@@ -437,7 +437,7 @@ mod tests {
         let new_dir = directory();
         let old_archive = old_dir.path().join("archive.db");
         let new_archive = new_dir.path().join("archive.db");
-        // Encrypted archive, with its key stored the way original ZapFast did.
+        // Encrypted archive, with its key stored the way original Whatsay did.
         let key = [7; 32];
         open(&old_archive, &key).unwrap();
         let store = keyring_core::mock::Store::new().unwrap();
