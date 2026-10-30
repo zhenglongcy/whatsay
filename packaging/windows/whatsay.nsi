@@ -140,6 +140,9 @@ Section "${APPNAME}" SecMain
   File "${SRCROOT}\LICENSE"
   File "${SRCROOT}\THIRD-PARTY-NOTICES.md"
   File "${SRCROOT}\packaging\windows\whatsay-installer.txt"
+  ; The updater detects an installed copy by the slug's installer
+  ; marker, so ship that name too (content: zapfast-installer-v1).
+  File "${SRCROOT}\packaging\windows\zapfast-installer.txt"
 
   ; Record the data-location choice for the app (datadir.txt next to the
   ; exe). Line 1 = desired root ("default"/empty = platform directories),
