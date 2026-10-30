@@ -587,11 +587,9 @@ impl Default for Settings {
             download_folder: None,
             keep_chats_archived: true,
             proxy: String::new(),
-            // Remote update checks stay off until our own releases
-            // channel exists (updates::UPDATE_REPO); the updater refuses
-            // until then, so even a saved `true` from an older install
-            // cannot offer an upstream release.
-            check_for_updates: false,
+            // Remote update checks run against our own releases
+            // channel (updates::UPDATE_REPO), never upstream's.
+            check_for_updates: true,
             download_updates_automatically: false,
             save_contacts_to_phone: true,
             voice_speed: 1.0,
@@ -1051,7 +1049,7 @@ mod tests {
             serde_json::from_str(r#"{"theme":"light","future_field":1}"#).expect("parses");
         assert_eq!(parsed.theme, ThemeChoice::Light);
         assert!(parsed.enter_sends);
-        assert!(!parsed.check_for_updates);
+        assert!(parsed.check_for_updates);
         assert!(!parsed.download_updates_automatically);
         assert!(parsed.show_wallpaper);
         assert_eq!(parsed.wallpaper_color, WallpaperColor::Theme);
