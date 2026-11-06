@@ -3145,7 +3145,8 @@ impl Worker {
             // WhatsApp reads the linked-device name, version, and icon at pairing.
             .with_device_props(
                 DevicePropsOverride::new()
-                    .with_os(device_name())                    .with_version(app_version())
+                    .with_os(device_name())
+                    .with_version(app_version())
                     .with_platform_type(wa::device_props::PlatformType::DESKTOP),
             )
             .with_event_handler(UiEvents {
@@ -7189,7 +7190,8 @@ impl Worker {
                     error: Some(error),
                 });
             } else {
-                self.emit(Event::Error(error));            }
+                self.emit(Event::Error(error));
+            }
             return;
         }
         match command {

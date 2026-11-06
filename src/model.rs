@@ -2564,7 +2564,8 @@ pub enum Dialog {
     ConfirmRemoveMember {
         chat: ChatId,
         member: ChatId,
-    },}
+    },
+}
 
 /// One recipient's receipts for one of our group messages.
 #[derive(Clone, Debug, PartialEq)]

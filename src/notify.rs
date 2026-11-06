@@ -397,7 +397,8 @@ pub fn locked_lines(locale: crate::i18n::Locale) -> (String, String) {
         "Whatsay".to_owned(),
         // Translators: the body of a notification that hides who wrote and
         // what: a message has arrived.
-        crate::i18n::pgettext(locale, "notification", "New message").into_owned(),    )
+        crate::i18n::pgettext(locale, "notification", "New message").into_owned(),
+    )
 }
 
 /// Builds the notification title and body, including the group sender.
@@ -524,7 +525,8 @@ fn deliver(
                 }
             }
         }
-    });}
+    });
+}
 
 #[cfg(test)]
 mod tests {

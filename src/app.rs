@@ -2582,7 +2582,8 @@ impl App {
         message: &str,
         limited: bool,
     ) {
-        self.wants_attention = true;        let (title, body) = crate::notify::locked_lines(self.locale);
+        self.wants_attention = true;
+        let (title, body) = crate::notify::locked_lines(self.locale);
         let sound = notification_sound(&self.settings, None, is_group, false);
         let waker = self.waker.clone();
         self.notifications.show(

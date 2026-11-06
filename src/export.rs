@@ -129,9 +129,7 @@ fn transcript_line(message: &Message) -> (String, Option<PathBuf>) {
         Content::Text { text, .. } | Content::Interactive { text, .. } => {
             (None, text.clone(), None)
         }
-        Content::Image {
-            caption, media, ..
-        } => (
+        Content::Image { caption, media, .. } => (
             Some("[photo]".to_owned()),
             caption.clone().unwrap_or_default(),
             media.path.clone(),
@@ -211,16 +209,14 @@ fn transcript_line(message: &Message) -> (String, Option<PathBuf>) {
         }
         Content::Revoked => (Some("[message deleted]".to_owned()), String::new(), None),
         Content::DisappearingTimer { seconds } => (
-            Some(
-                if *seconds == 0 {
-                    "[disappearing messages off]".to_owned()
-                } else {
-                    format!(
-                        "[disappearing messages: {}]",
-                        crate::util::duration(*seconds)
-                    )
-                },
-            ),
+            Some(if *seconds == 0 {
+                "[disappearing messages off]".to_owned()
+            } else {
+                format!(
+                    "[disappearing messages: {}]",
+                    crate::util::duration(*seconds)
+                )
+            }),
             String::new(),
             None,
         ),

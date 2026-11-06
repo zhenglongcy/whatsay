@@ -678,7 +678,8 @@ fn still(
                                 image_response
                                     .interact_pointer_pos()
                                     .filter(|_| image_response.double_clicked()),
-                            )                        },
+                            )
+                        },
                     )
                     .inner
                 });

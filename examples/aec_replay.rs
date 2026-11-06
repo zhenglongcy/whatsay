@@ -15,7 +15,7 @@
 //! Options:
 //!
 //! - `--engine call|pipeline`: `call` (the default) is the call's own chain
-//!   (`zapfast::call_audio::chain`); `pipeline` is sonora's pipeline with AEC3's stock settings,
+//!   (`whatsay::call_audio::chain`); `pipeline` is sonora's pipeline with AEC3's stock settings,
 //!   as the first calls ran it;
 //! - `--base call|stock`: the AEC3 settings `--set` starts from (`call` by default);
 //! - `--set <key>=<value>`, repeatable: one AEC3 setting, by the names
@@ -40,10 +40,10 @@ use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use zapfast::call_audio::RATE;
-use zapfast::call_audio::chain::{Chain, ChainSettings, apply_setting};
-use zapfast::call_audio::dump::{Wav, read_wav, siblings};
-use zapfast::call_audio::echo::{CHUNK, stock_pipeline_config};
+use whatsay::call_audio::RATE;
+use whatsay::call_audio::chain::{Chain, ChainSettings, apply_setting};
+use whatsay::call_audio::dump::{Wav, read_wav, siblings};
+use whatsay::call_audio::echo::{CHUNK, stock_pipeline_config};
 
 const SECOND: usize = RATE as usize;
 

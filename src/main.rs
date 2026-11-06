@@ -218,7 +218,8 @@ fn run() -> eframe::Result<()> {
             eprintln!("{message}");
         }
         if code != 0 {
-            std::process::exit(code);        }
+            std::process::exit(code);
+        }
         return Ok(());
     }
     // A number, a `wa.me` link, or the `whatsapp://` URI the desktop entry
@@ -279,7 +280,8 @@ fn run() -> eframe::Result<()> {
                 eprintln!(
                     "Whatsay is already running, but that copy is too old to open the link; \
                      asked it to show its window instead. Quit it and try again to open the link."
-                );                return Ok(());
+                );
+                return Ok(());
             }
             single_instance::Outcome::Unanswered => {
                 eprintln!("Whatsay is already running but did not answer");
@@ -471,7 +473,8 @@ fn run() -> eframe::Result<()> {
             });
             eframe::run_native(
                 "Whatsay",
-                native_options(demo_persistence.clone(), geometry, transparent),                Box::new(move |cc| {
+                native_options(demo_persistence.clone(), geometry, transparent),
+                Box::new(move |cc| {
                     let mut app = lease.take(&cc.egui_ctx);
                     app.attach(&cc.egui_ctx);
                     #[cfg(target_os = "linux")]

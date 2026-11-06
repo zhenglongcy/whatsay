@@ -577,7 +577,8 @@ fn banner(app: &mut App, ui: &mut egui::Ui) {
             (
                 Icon::Info,
                 crate::i18n::gettext(app.locale, "Whatsay {version} is available")
-                    .replace("{version}", &update.version),                palette.accent,
+                    .replace("{version}", &update.version),
+                palette.accent,
                 false,
                 Some(update.url.clone()),
             )
