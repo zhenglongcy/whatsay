@@ -14,7 +14,7 @@
 ;                        total). Windows finds them next to the exe.
 
 !define APPNAME "Whatsay"
-!define APPVERSION "0.20.2"
+!define APPVERSION "0.21.1"
 !define APPEXE "whatsay.exe"
 !define PUBLISHER "Whatsay"
 !define APPID "{F2512314-384A-4002-9933-AB840FD01639}"

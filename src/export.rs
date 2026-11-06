@@ -210,6 +210,20 @@ fn transcript_line(message: &Message) -> (String, Option<PathBuf>) {
             (Some(format!("[poll: {question}]")), String::new(), None)
         }
         Content::Revoked => (Some("[message deleted]".to_owned()), String::new(), None),
+        Content::DisappearingTimer { seconds } => (
+            Some(
+                if *seconds == 0 {
+                    "[disappearing messages off]".to_owned()
+                } else {
+                    format!(
+                        "[disappearing messages: {}]",
+                        crate::util::duration(*seconds)
+                    )
+                },
+            ),
+            String::new(),
+            None,
+        ),
         Content::Call {
             video,
             status,
