@@ -28,8 +28,8 @@ engine. In our Linux test it opens in under a second and uses about 200 MB of
 idle RAM, against 1.13 GB for WhatsApp Web.
 
 The interface is available in English, Chinese (Simplified and Traditional),
-French, German, Indonesian, Italian, Portuguese (Brazil), Russian, Spanish,
-and Turkish.
+Dutch, French, German, Indonesian, Italian, Portuguese (Brazil), Russian,
+Spanish, and Turkish.
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/screenshot-light.png">
